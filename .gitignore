@@ -11,3 +11,9 @@
 # Visual C++ cache files
 /ipch/
 /.vs/
+
+# Configuration files
+*.ini
+
+# Temporary files
+*.log

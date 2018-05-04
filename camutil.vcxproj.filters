@@ -28,6 +28,15 @@
       <Extensions>moc;h;cpp</Extensions>
       <SourceControlFiles>False</SourceControlFiles>
     </Filter>
+    <Filter Include="Header Files\videothread">
+      <UniqueIdentifier>{d8a9c80f-a057-42ff-beda-31cbb7c81e0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\videothread">
+      <UniqueIdentifier>{38c385da-182b-4d01-947d-b9a1b9a95e3b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Form Files\videothread">
+      <UniqueIdentifier>{1e609c45-4b19-452a-99d9-f13797869d00}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="camutil.qrc">
@@ -53,6 +62,9 @@
     <ClCompile Include="source\videothread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="source\videothread\preview.cpp">
+      <Filter>Source Files\videothread</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="source\sourcedialog.h">
@@ -69,6 +81,9 @@
     </QtMoc>
     <QtMoc Include="source\videothread.h">
       <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="source\videothread\preview.h">
+      <Filter>Header Files\videothread</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

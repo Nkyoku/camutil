@@ -1,54 +1,43 @@
 ﻿#include "videothread.h"
 #include "camutilwindow.h"
 #include "imageviewgl.h"
+#include <QApplication>
 #include <QElapsedTimer>
 #include <QEventLoop>
 
-
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-//#include <opencv2/calib3d.hpp>
-//#include <intrin.h>
-
 VideoThread::VideoThread(VideoInput *video_input, QObject *parent)
-    : QObject(parent), m_VideoInput(video_input)
+    : QObject(parent), m_Thread(nullptr), m_VideoInput(video_input)
 {
-	// スレッドを移す
-	moveToThread(&m_Thread);
-	connect(&m_Thread, &QThread::started, this, &VideoThread::doWork);
-
 	
 }
 
 VideoThread::~VideoThread(){
-	quit();
+	quitThread();
 }
 
-void VideoThread::initialize(CamUtilWindow *camutil) {
-    // CamUtilWindowのOutputViewに必要なウィジェットを追加する
-    m_Left = camutil->addOutputWidgetGeneric(new ImageViewGl, tr("Left"), true);
-    //m_Right = camutil->addOutputWidgetGeneric(new ImageViewGl, tr("Right"));
-
-    //m_Left2 = camutil->addOutputWidgetGeneric(new ImageViewGl, tr("Left2"), true);
-    //m_Right2 = camutil->addOutputWidgetGeneric(new ImageViewGl, tr("Right2"));
-
-    connect(this, &VideoThread::update, m_Left, QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
-    //connect(this, &VideoThread::update, m_Right, QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
-    //connect(this, &VideoThread::update, m_Left2, QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
-    //connect(this, &VideoThread::update, m_Right2, QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
-}
-
-void VideoThread::start(QThread::Priority priority){
-	if ((m_Thread.isRunning() == false) && (m_Thread.isFinished() == false)){
-		m_Thread.start(priority);
+void VideoThread::startThread(QThread::Priority priority){
+    if (m_Thread == nullptr) {
+        m_Thread = new QThread;
+    }
+	if ((m_Thread->isRunning() == false) && (m_Thread->isFinished() == false)){
+        moveToThread(m_Thread);
+        connect(m_Thread, &QThread::started, this, &VideoThread::doWork);
+		m_Thread->start(priority);
 	}
 }
 
-void VideoThread::quit(void){
-	if (m_Thread.isRunning() == true){
-		m_ExitFlag = true;
-		m_Thread.quit();
-		m_Thread.wait();
+void VideoThread::quitThread(void){
+	if (m_Thread != nullptr) {
+        if (m_Thread->isRunning() == true) {
+            m_ExitFlag = true;
+            m_Thread->quit();
+            QThread::msleep(100);
+            m_Thread->wait();
+        }
+        moveToThread(QApplication::instance()->thread());
+        delete m_Thread;
+        m_Thread = nullptr;
+        m_ExitFlag = false;
 	}
 }
 
@@ -59,10 +48,11 @@ void VideoThread::doWork(void){
     double adjuster_setting = 1000.0 / m_VideoInput->sourceFramerate();
     cv::Mat input_image;
 
+    qDebug("thread started");
     elapsed_timer.start();
 	while (m_ExitFlag == false){
         qint64 interval = elapsed_timer.restart();
-        //event_loop.processEvents();
+        event_loop.processEvents();
 
 		// フレームを読み込む
         if (m_VideoInput->readFrame(input_image) == false) {
@@ -94,11 +84,5 @@ void VideoThread::doWork(void){
             m_ProcessingFramerate = ((m_ProcessingFramerate * 7.0) + 1000.0 / interval) * 0.125;
         }
 	}
-}
-
-void VideoThread::processImage(const cv::Mat &input_image) {
-    m_Left->setImage(input_image);
-    //m_Right->setImage(input_image);
-    //m_Left2->setImage(input_image);
-    //m_Right2->setImage(input_image);
+    qDebug("thread finished");
 }

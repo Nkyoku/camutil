@@ -1,6 +1,7 @@
 ﻿#include "camutilwindow.h"
 #include "ui_camutilwindow.h"
-#include "imageviewgl.h"
+#include "videothread/preview.h"
+
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QSettings>
@@ -8,7 +9,7 @@
 #include <QtWidgets/QBoxLayout>
 #include <QtWidgets/QMessageBox>
 
-#include <opencv2/core.hpp>
+
 
 #include <QDebug>
 
@@ -101,7 +102,15 @@ CamUtilWindow::CamUtilWindow(QWidget *parent)
 	});*/
 	
 
-    QTimer *timer = new QTimer(this);
+    // VideoThread関連のGUIを生成する
+    //m_ui->Tab
+
+
+
+
+
+
+    /*QTimer *timer = new QTimer(this);
     timer->setInterval(100);
     connect(timer, &QTimer::timeout, [&]() {
         if (m_VideoThread != nullptr) {
@@ -109,7 +118,7 @@ CamUtilWindow::CamUtilWindow(QWidget *parent)
             this->setWindowTitle(tr("FPS : %1").arg(framerate));
         }
     });
-    timer->start();
+    timer->start();*/
 	
     restoreSettings();
     setObjectsState(false, false);
@@ -139,7 +148,7 @@ void CamUtilWindow::saveSettings(void) const {
     m_SourceDialog.saveSettings(settings);
 }
 
-QWidget* CamUtilWindow::findOutputWidget(const QString &name) const {
+/*QWidget* CamUtilWindow::findOutputWidget(const QString &name) const {
     if (name.isEmpty() == true) {
         return nullptr;
     }
@@ -233,7 +242,7 @@ void CamUtilWindow::destroyAllOutputWidgets(void) {
         // ウィジェットによっては連続削除時にイベントループを挟む必要がある
         event_loop.processEvents(QEventLoop::ExcludeUserInputEvents);
     }
-}
+}*/
 
 bool CamUtilWindow::openSource(void){
     closeSource();
@@ -277,9 +286,9 @@ bool CamUtilWindow::openSource(void){
         m_ui->StatusBar->showMessage(tr("Source : %1, %2x%3 %4 fps").arg(status_message).arg(resolution.width()).arg(resolution.height()).arg(framerate));
 
         // 映像処理スレッドを起動
-        m_VideoThread = new VideoThread(&m_VideoInput);
-        m_VideoThread->initialize(this);
-        m_VideoThread->start();
+        m_VideoThread = new VideoPreviewThread(&m_VideoInput);
+        m_VideoThread->initialize(m_ui->OutputView);
+        m_VideoThread->startThread();
 
         setObjectsState(true, m_VideoInput.isSeekable());
         return true;
@@ -298,7 +307,7 @@ void CamUtilWindow::closeSource(void) {
         m_ui->StatusBar->showMessage(QString());
         setObjectsState(false, false);
     }
-    destroyAllOutputWidgets();
+    destroyAllWidgets(m_ui->OutputView);
 }
 
 void CamUtilWindow::setObjectsState(bool is_opened, bool is_seekable) {
@@ -312,3 +321,14 @@ void CamUtilWindow::setObjectsState(bool is_opened, bool is_seekable) {
     m_ui->SourceSlider->setEnabled(is_opened && is_seekable);
 }
 
+void CamUtilWindow::destroyAllWidgets(QWidget *parent) {
+    QEventLoop event_loop;
+    auto children = parent->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly);
+    for (auto widget : children) {
+        delete widget;
+
+        // ウィジェットによっては連続削除時にイベントループを挟む必要がある
+        event_loop.processEvents(QEventLoop::ExcludeUserInputEvents);
+    }
+    delete parent->layout();
+}

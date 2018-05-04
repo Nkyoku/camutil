@@ -1,11 +1,9 @@
 ﻿#pragma once
 
 #include <QThread>
+#include <QtWidgets/QWidget>
 #include <opencv2/core.hpp>
 #include "videoinput.h"
-
-QT_FORWARD_DECLARE_CLASS(CamUtilWindow);
-QT_FORWARD_DECLARE_CLASS(ImageViewGl);
 
 class VideoThread : public QObject{
 	Q_OBJECT
@@ -15,16 +13,22 @@ public:
     VideoThread(VideoInput *video_input, QObject *parent = nullptr);
 
     // デストラクタ
-	~VideoThread();
+	virtual ~VideoThread();
 
-    // 初期化する
-    void initialize(CamUtilWindow *camutil);
+    // 初期化のために一度だけ実行される
+    // parentにGUIを配置するためのタブのページへのポインタが格納される
+    // 返値としてタブのタイトルを返す必要がある
+    virtual QString initializeOnce(QWidget *parent) = 0;
+
+    // スレッド開始前に初期化する
+    // 画像などを表示するためのウィジェットへのポインタが格納される
+    virtual void initialize(QWidget *parent) = 0;
 
 	// スレッドを開始する
-	Q_SLOT void start(QThread::Priority priority = QThread::InheritPriority);
+	Q_SLOT void startThread(QThread::Priority priority = QThread::InheritPriority);
 
 	// スレッドを終了する
-	Q_SLOT void quit(void);
+	Q_SLOT void quitThread(void);
 
     // 1フレームあたりの処理時間を取得する [s]
     // 画像処理にかかる時間のみを返す
@@ -40,12 +44,16 @@ public:
     // 処理が終わったときに呼ばれるシグナル
     Q_SIGNAL void update(void);
 
+protected:
+    // 画像処理の本体
+    virtual void processImage(const cv::Mat &input_image) = 0;
+
 private:
 	// フレームの読み込みに失敗したときのタイムアウト[ms]
 	static const int TIMEOUT = 100;
 
 	// スレッドオブジェクト
-	QThread m_Thread;
+	QThread *m_Thread;
 
 	// スレッドを終了させるフラグ
 	volatile bool m_ExitFlag = false;
@@ -59,25 +67,6 @@ private:
     // 処理フレームレート [Hz]
     double m_ProcessingFramerate = 0.0;
 
-    ImageViewGl *m_Left, *m_Right;
-    ImageViewGl *m_Left2, *m_Right2;
-
-
 	// 画像処理を行うスレッドで実行される
 	Q_SLOT void doWork(void);
-
-    // 画像処理の本体
-    void processImage(const cv::Mat &input_image);
-
-	/*// Census変換を5x5のウィンドウを用いて行う
-	static void doCensus5x5Transform(cv::Mat &src, cv::Mat &dst);
-	
-	// Census変換を9x1のウィンドウを用いて行う
-	static void doCensus9x1Transform(cv::Mat &src, cv::Mat &dst);
-
-	// Census変換を33x1のウィンドウを用いて行う
-	static void doCensus33x1Transform(cv::Mat &src, cv::Mat &dst);*/
-
-
-
 };

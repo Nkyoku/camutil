@@ -26,13 +26,13 @@ public:
     // 設定ファイルに状態を保存する
     void saveSettings(void) const;
 
-    // OutputViewにあるウィジェットを検索する
+    /*// OutputViewにあるウィジェットを検索する
     // 無い場合はnullptrを返す
-    QWidget* findOutputWidget(const QString &name) const;
+    //QWidget* findOutputWidget(const QString &name) const;
 
     // ウィジェットをOutputViewに追加する
     // すでに同名のウィジェットが存在する場合はそれを返して与えられたウィジェットを削除する
-    QWidget* addOutputWidget(QWidget *widget, const QString &name, bool wide = false);
+    //QWidget* addOutputWidget(QWidget *widget, const QString &name, bool wide = false);
 
     // ウィジェットをOutputViewに追加する
     // すでに同名のウィジェットが存在する場合はそれを返して与えられたウィジェットを削除する
@@ -45,7 +45,7 @@ public:
     void destroyOutputWidget(const QString &name);
 
     // OutputViewからすべてのウィジェットを削除する
-    void destroyAllOutputWidgets(void);
+    void destroyAllOutputWidgets(void);*/
 
 
 
@@ -82,4 +82,6 @@ private:
     // カメラの接続状態に応じてUIオブジェクトの有効・無効を切り替える
     void setObjectsState(bool is_opened, bool is_seekable);
 
+    // ウィジェットの全ての子ウィジェットとレイアウトを削除する
+    static void destroyAllWidgets(QWidget *parent);
 };

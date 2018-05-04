@@ -181,7 +181,7 @@
        <property name="currentIndex">
         <number>0</number>
        </property>
-       <widget class="QWidget" name="tab">
+       <widget class="QWidget" name="Tab">
         <attribute name="title">
          <string>Settings</string>
         </attribute>

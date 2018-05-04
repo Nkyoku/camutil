@@ -20,6 +20,7 @@
     <ClCompile Include="source\videoinput.cpp" />
     <ClCompile Include="source\imageviewgl.cpp" />
     <ClCompile Include="source\videothread.cpp" />
+    <ClCompile Include="source\videothread\preview.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="source\camutilwindow.h" />
@@ -47,6 +48,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\qtmat.h" />
+    <QtMoc Include="source\videothread\preview.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\app\opencv-3.4.1\build\include;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtOpenGL</IncludePath>
+      <Define Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE;WIN32;WIN64;QT_DLL;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_OPENGL_LIB</Define>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\app\opencv-3.4.1\build\include;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtOpenGL</IncludePath>
+      <Define Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;_UNICODE;WIN32;WIN64;QT_DLL;QT_NO_DEBUG;NDEBUG;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_OPENGL_LIB</Define>
+    </QtMoc>
     <QtMoc Include="source\videothread.h">
       <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\app\opencv-3.4.1\build\include;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtOpenGL</IncludePath>
       <Define Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE;WIN32;WIN64;QT_DLL;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_OPENGL_LIB</Define>

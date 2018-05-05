@@ -11,7 +11,7 @@ class SourceDialog : public QDialog {
 
 public:
     // コンストラクタ
-    SourceDialog(QWidget *parent = nullptr);
+    explicit SourceDialog(QWidget *parent = nullptr);
 
     // 設定ファイルから状態を復元する
     void restoreSettings(const QSettings &settings);

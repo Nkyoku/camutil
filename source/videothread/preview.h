@@ -8,7 +8,7 @@ class VideoPreviewThread : public VideoThread{
 	Q_OBJECT
 
 public:
-    VideoPreviewThread(VideoInput *video_input, QObject *parent = nullptr);
+    VideoPreviewThread(VideoInput *video_input);
 
     virtual ~VideoPreviewThread();
 

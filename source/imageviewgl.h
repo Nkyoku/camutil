@@ -15,7 +15,7 @@ class ImageViewGl : public QOpenGLWidget, protected QOpenGLFunctions {
 
 public:
     // コンストラクタ
-    ImageViewGl(QWidget *parent = nullptr);
+    explicit ImageViewGl(QWidget *parent = nullptr);
 
     // デストラクタ
     ~ImageViewGl();

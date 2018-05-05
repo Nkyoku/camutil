@@ -5,10 +5,10 @@
 #include <QElapsedTimer>
 #include <QEventLoop>
 
-VideoThread::VideoThread(VideoInput *video_input, QObject *parent)
-    : QObject(parent), m_Thread(nullptr), m_VideoInput(video_input)
+VideoThread::VideoThread(VideoInput *video_input)
+    : QObject(), m_Thread(nullptr), m_VideoInput(video_input)
 {
-	
+    
 }
 
 VideoThread::~VideoThread(){
@@ -31,10 +31,8 @@ void VideoThread::quitThread(void){
         if (m_Thread->isRunning() == true) {
             m_ExitFlag = true;
             m_Thread->quit();
-            QThread::msleep(100);
             m_Thread->wait();
         }
-        moveToThread(QApplication::instance()->thread());
         delete m_Thread;
         m_Thread = nullptr;
         m_ExitFlag = false;
@@ -48,7 +46,6 @@ void VideoThread::doWork(void){
     double adjuster_setting = 1000.0 / m_VideoInput->sourceFramerate();
     cv::Mat input_image;
 
-    qDebug("thread started");
     elapsed_timer.start();
 	while (m_ExitFlag == false){
         qint64 interval = elapsed_timer.restart();
@@ -84,5 +81,5 @@ void VideoThread::doWork(void){
             m_ProcessingFramerate = ((m_ProcessingFramerate * 7.0) + 1000.0 / interval) * 0.125;
         }
 	}
-    qDebug("thread finished");
+    moveToThread(QApplication::instance()->thread());
 }

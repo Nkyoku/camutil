@@ -15,7 +15,7 @@ class CamUtilWindow : public QMainWindow {
 
 public:
     // コンストラクタ
-    CamUtilWindow(QWidget *parent = nullptr);
+    explicit CamUtilWindow(QWidget *parent = nullptr);
 
     // デストラクタ
     ~CamUtilWindow();

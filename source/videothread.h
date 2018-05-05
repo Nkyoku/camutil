@@ -10,7 +10,7 @@ class VideoThread : public QObject{
 
 public:
     // コンストラクタ
-    VideoThread(VideoInput *video_input, QObject *parent = nullptr);
+    VideoThread(VideoInput *video_input);
 
     // デストラクタ
 	virtual ~VideoThread();

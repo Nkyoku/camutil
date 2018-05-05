@@ -21,7 +21,7 @@ public:
     };
 
     // コンストラクタ
-    VideoInput(QObject *parent = nullptr);
+    explicit VideoInput(QObject *parent = nullptr);
 
     // デストラクタ
     ~VideoInput();

@@ -3,14 +3,14 @@
 #include <QtWidgets/QGridLayout>
 #include <opencv2/imgproc.hpp>
 
-VideoPreviewThread::VideoPreviewThread(VideoInput *video_input, QObject *parent)
-    : VideoThread(video_input, parent)
+VideoPreviewThread::VideoPreviewThread(VideoInput *video_input)
+    : VideoThread(video_input)
 {
 	
 }
 
 VideoPreviewThread::~VideoPreviewThread(){
-	
+    quitThread();
 }
 
 QString VideoPreviewThread::initializeOnce(QWidget *parent) {

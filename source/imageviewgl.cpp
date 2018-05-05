@@ -12,6 +12,10 @@ ImageViewGl::~ImageViewGl() {
     delete m_Texture;
 }
 
+void ImageViewGl::convertBgrToRgb(void) {
+    m_BgrFlag = true;
+}
+
 void ImageViewGl::initializeGL(void) {
     initializeOpenGLFunctions();
     
@@ -67,21 +71,40 @@ void ImageViewGl::paintGL(void) {
                 m_Texture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
             }
             QOpenGLTexture::PixelFormat pixel_format;
-            switch (m_Image.channels()) {
-            case 1:
-                pixel_format = QOpenGLTexture::Luminance;
-                break;
-            case 2:
-                pixel_format = QOpenGLTexture::RG;
-                break;
-            case 3:
-                pixel_format = QOpenGLTexture::BGR;
-                break;
-            case 4:
-                pixel_format = QOpenGLTexture::BGRA;
-                break;
-            default:
-                Q_ASSERT(false);
+            if (m_BgrFlag == false) {
+                switch (m_Image.channels()) {
+                case 1:
+                    pixel_format = QOpenGLTexture::Luminance;
+                    break;
+                case 2:
+                    pixel_format = QOpenGLTexture::RG;
+                    break;
+                case 3:
+                    pixel_format = QOpenGLTexture::RGB;
+                    break;
+                case 4:
+                    pixel_format = QOpenGLTexture::RGBA;
+                    break;
+                default:
+                    Q_ASSERT(false);
+                }
+            } else {
+                switch (m_Image.channels()) {
+                case 1:
+                    pixel_format = QOpenGLTexture::Luminance;
+                    break;
+                case 2:
+                    pixel_format = QOpenGLTexture::RG;
+                    break;
+                case 3:
+                    pixel_format = QOpenGLTexture::BGR;
+                    break;
+                case 4:
+                    pixel_format = QOpenGLTexture::BGRA;
+                    break;
+                default:
+                    Q_ASSERT(false);
+                }
             }
             QOpenGLTexture::PixelType pixel_type;
             switch (m_Image.depth()) {

@@ -8,7 +8,7 @@ class VideoPreviewThread : public VideoThread{
 	Q_OBJECT
 
 public:
-    VideoPreviewThread(VideoInput *video_input);
+    VideoPreviewThread(VideoInput *video_input) : VideoThread(video_input) {};
 
     virtual ~VideoPreviewThread();
 
@@ -21,6 +21,4 @@ protected:
 
 private:
     ImageViewGl *m_Left, *m_Right;
-    ImageViewGl *m_Left2, *m_Right2;
-
 };

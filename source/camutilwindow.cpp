@@ -1,20 +1,15 @@
 ﻿#include "camutilwindow.h"
 #include "ui_camutilwindow.h"
+#include "tabpage.h"
 #include "videothread/preview.h"
-
+#include "videothread/lenscalibration.h"
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QSettings>
+#include <QTimer>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QBoxLayout>
 #include <QtWidgets/QMessageBox>
-
-
-
-#include <QDebug>
-
-#include <QTimer>
-
 
 const char CamUtilWindow::kConfigPath[] = "config.ini";
 
@@ -26,23 +21,15 @@ CamUtilWindow::CamUtilWindow(QWidget *parent)
 	m_ui = new Ui_CamUtilWindow;
 	m_ui->setupUi(this);
 
-    // 映像出力のためのレイアウトをVideoOutput内に生成する
-    m_OutputViewLayout = new QGridLayout;
-    m_OutputViewLayout->setContentsMargins(0, 0, 0, 0);
-    m_ui->OutputView->setLayout(m_OutputViewLayout);
-
+    // タブに各VideoThreadのGUIのページを作成する
+    addTabPage(new VideoPreviewThread(&m_VideoInput));
+    addTabPage(new VideoLensCalibrationThread(&m_VideoInput));
 
     connect(m_ui->SourceSelect, &QPushButton::clicked, &m_SourceDialog, &QDialog::exec);
 	connect(m_ui->SourceOpen, &QPushButton::clicked, this, &CamUtilWindow::openSource);
 	connect(m_ui->SourceClose, &QPushButton::clicked, this, &CamUtilWindow::closeSource);
     connect(m_ui->SourcePlayPause, &QPushButton::clicked, &m_VideoInput, &VideoInput::startOrPausePlaying);
     connect(m_ui->SourceStop, &QPushButton::clicked, &m_VideoInput, &VideoInput::stopPlaying);
-
-
-
-
-    
-
     connect(m_ui->SourceTime1, QOverload<int>::of(&QSpinBox::valueChanged), [&](int frame_number) {
         m_VideoInput.setFrameNumber(frame_number);
     });
@@ -75,174 +62,55 @@ CamUtilWindow::CamUtilWindow(QWidget *parent)
         m_ui->SourceSlider->blockSignals(false);
     });
 
-	//connect(&m_CaptureDevice, &PS4Eye::captured, this, &TheSight::UpdateImage, Qt::QueuedConnection);
-
-
-
-	/*connect(m_ui.VerticalOffsetInput, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged), [&](int value){
-		if (m_Vidsenso != nullptr){
-			m_Vidsenso->setVerticalOffset(value);
-		}
-	});*/
-
-	/*connect(m_ui.BrightnessSlider, &QSlider::valueChanged, [&](int value){
-		m_ui.BrightnessLabel->setText(QString::number(value));
-		//m_Camera.setBrightness(value);
-		m_Camera.set(cv::CAP_PROP_BRIGHTNESS, value);
-	});
-	connect(m_ui.GainSlider, &QSlider::valueChanged, [&](int value){
-		m_ui.GainLabel->setText(QString::number(value));
-		//m_Camera.setGain(value);
-		m_Camera.set(cv::CAP_PROP_GAIN, value);
-	});
-	connect(m_ui.ExposureSlider, &QSlider::valueChanged, [&](int value){
-		m_ui.ExposureLabel->setText(QString::number(value));
-		//m_Camera.setExposure(false, value);
-		m_Camera.set(cv::CAP_PROP_EXPOSURE, value);
-	});*/
-	
-
-    // VideoThread関連のGUIを生成する
-    //m_ui->Tab
-
-
-
-
-
-
-    /*QTimer *timer = new QTimer(this);
+    // FPSと処理時間を描画する
+    QTimer *timer = new QTimer(this);
     timer->setInterval(100);
     connect(timer, &QTimer::timeout, [&]() {
-        if (m_VideoThread != nullptr) {
-            double framerate = m_VideoThread->processingFramerate();
-            this->setWindowTitle(tr("FPS : %1").arg(framerate));
+        if (m_CurrentVideoThread != nullptr) {
+            double framerate = m_CurrentVideoThread->processingFramerate();
+            double time = m_CurrentVideoThread->proccessingTime();
+            this->setWindowTitle(tr("FPS : %1, Time : %2 ms").arg(framerate).arg(time * 1000, 0, 'f', 3));
         }
     });
-    timer->start();*/
+    timer->start();
 	
     restoreSettings();
     setObjectsState(false, false);
 }
 
 CamUtilWindow::~CamUtilWindow(){
-	closeSource();
-
+    closeSource();
+    
     saveSettings();
+
+    // すべてのVideoThreadを削除する
+    for (int index = m_ui->Tab->count(); 0 <= --index;) {
+        TabPage *page = reinterpret_cast<TabPage*>(m_ui->Tab->widget(index));
+        delete page->videoThread();
+        m_ui->Tab->removeTab(index);
+        delete page;
+    }
 }
 
 void CamUtilWindow::restoreSettings(void) {
     QSettings settings(kConfigPath, QSettings::IniFormat);
     restoreState(settings.value("WindowState").toByteArray());
     m_ui->Splitter->restoreState(settings.value(tr("SplitterState")).toByteArray());
-
-
     m_SourceDialog.restoreSettings(settings);
+    for (int index = 0, count = m_ui->Tab->count(); index < count; index++) {
+        reinterpret_cast<TabPage*>(m_ui->Tab->widget(index))->videoThread()->restoreSettings(settings);
+    }
 }
 
 void CamUtilWindow::saveSettings(void) const {
     QSettings settings(kConfigPath, QSettings::IniFormat);
     settings.setValue("WindowState", saveState());
     settings.setValue("SplitterState", m_ui->Splitter->saveState());
-
-
     m_SourceDialog.saveSettings(settings);
-}
-
-/*QWidget* CamUtilWindow::findOutputWidget(const QString &name) const {
-    if (name.isEmpty() == true) {
-        return nullptr;
-    }
-    int count = m_OutputViewLayout->count();
-    for (int index = 0; index < count; index++) {
-        QGroupBox *groupbox = reinterpret_cast<QGroupBox*>(m_OutputViewLayout->itemAt(index)->widget());
-        if ((groupbox != nullptr) && (name == groupbox->title())) {
-            QLayoutItem *item = groupbox->layout()->itemAt(0);
-            if (item != nullptr) {
-                return item->widget();
-            }
-        }
-    }
-    return nullptr;
-}
-
-QWidget* CamUtilWindow::addOutputWidget(QWidget *widget, const QString &name, bool wide) {
-    QWidget *existing_widget;
-    existing_widget = findOutputWidget(name);
-    if (existing_widget != nullptr) {
-        return existing_widget;
-    } else {
-        QGroupBox *new_groupbox = new QGroupBox;
-        QVBoxLayout *new_layout = new QVBoxLayout;
-        new_groupbox->setTitle(name);
-        new_groupbox->setLayout(new_layout);
-        new_layout->addWidget(widget);
-        widget->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-
-        // 空いているセルを探す
-        int row_count = m_OutputViewLayout->rowCount();
-        if (wide == false) {
-            int row, col = 0;
-            for (row = 0; row < row_count; row++) {
-                for (; col < kVideoOutputColumns; col++) {
-                    if (m_OutputViewLayout->itemAtPosition(row, col) == nullptr) {
-                        break;
-                    }
-                }
-                if (col != kVideoOutputColumns) {
-                    break;
-                }
-                col = 0;
-            }
-            m_OutputViewLayout->addWidget(new_groupbox, row, col);
-        } else {
-            int row;
-            for (row = 0; row < row_count; row++) {
-                int col;
-                for (col = 0; col < kVideoOutputColumns; col++) {
-                    if (m_OutputViewLayout->itemAtPosition(row, col) != nullptr) {
-                        break;
-                    }
-                }
-                if (col == kVideoOutputColumns) {
-                    break;
-                }
-            }
-            m_OutputViewLayout->addWidget(new_groupbox, row, 0, 1, kVideoOutputColumns);
-        }
-        return widget;
+    for (int index = 0, count = m_ui->Tab->count(); index < count; index++) {
+        reinterpret_cast<TabPage*>(m_ui->Tab->widget(index))->videoThread()->saveSettings(settings);
     }
 }
-
-void CamUtilWindow::destroyOutputWidget(const QString &name) {
-    if (name.isEmpty() == true) {
-        return;
-    }
-    int count = m_OutputViewLayout->count();
-    for (int index = 0; index < count; index++) {
-        QGroupBox *groupbox = reinterpret_cast<QGroupBox*>(m_OutputViewLayout->itemAt(index)->widget());
-        if ((groupbox != nullptr) && (name == groupbox->title())) {
-            QLayoutItem *item = m_OutputViewLayout->takeAt(index);
-            delete item->widget();
-            delete item;
-
-            // ウィジェットによっては連続削除時にイベントループを挟む必要がある
-            QEventLoop event_loop;
-            event_loop.processEvents(QEventLoop::ExcludeUserInputEvents);
-        }
-    }
-}
-
-void CamUtilWindow::destroyAllOutputWidgets(void) {
-    QEventLoop event_loop;
-    QLayoutItem *item;
-    while ((item = m_OutputViewLayout->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-
-        // ウィジェットによっては連続削除時にイベントループを挟む必要がある
-        event_loop.processEvents(QEventLoop::ExcludeUserInputEvents);
-    }
-}*/
 
 bool CamUtilWindow::openSource(void){
     closeSource();
@@ -285,10 +153,18 @@ bool CamUtilWindow::openSource(void){
         double framerate = m_VideoInput.sourceFramerate();
         m_ui->StatusBar->showMessage(tr("Source : %1, %2x%3 %4 fps").arg(status_message).arg(resolution.width()).arg(resolution.height()).arg(framerate));
 
-        // 映像処理スレッドを起動
-        m_VideoThread = new VideoPreviewThread(&m_VideoInput);
-        m_VideoThread->initialize(m_ui->OutputView);
-        m_VideoThread->startThread();
+        // 選択されていないタブページを無効化
+        for (int index = 0, count = m_ui->Tab->count(); index < count; index++) {
+            if (m_ui->Tab->currentIndex() != index) {
+                m_ui->Tab->setTabEnabled(index, false);
+            }
+        }
+
+        // 選択されているVideoThreadを起動
+        VideoThread *video_thread = reinterpret_cast<TabPage*>(m_ui->Tab->currentWidget())->videoThread();
+        m_CurrentVideoThread = video_thread;
+        video_thread->initialize(m_ui->OutputView);
+        video_thread->startThread();
 
         setObjectsState(true, m_VideoInput.isSeekable());
         return true;
@@ -298,16 +174,22 @@ bool CamUtilWindow::openSource(void){
 }
 
 void CamUtilWindow::closeSource(void) {
-    if (m_VideoThread != nullptr) {
-        delete m_VideoThread;
-        m_VideoThread = nullptr;
+    if (m_CurrentVideoThread != nullptr) {
+        m_CurrentVideoThread->quitThread();
+        m_CurrentVideoThread = nullptr;
+        destroyAllWidgets(m_ui->OutputView);
+        delete m_ui->OutputView->layout();
+
+        // すべてのタブページを有効化
+        for (int index = 0, count = m_ui->Tab->count(); index < count; index++) {
+            m_ui->Tab->setTabEnabled(index, true);
+        }
     }
     if (m_VideoInput.isOpened() == true) {
         m_VideoInput.close();
         m_ui->StatusBar->showMessage(QString());
         setObjectsState(false, false);
     }
-    destroyAllWidgets(m_ui->OutputView);
 }
 
 void CamUtilWindow::setObjectsState(bool is_opened, bool is_seekable) {
@@ -319,6 +201,11 @@ void CamUtilWindow::setObjectsState(bool is_opened, bool is_seekable) {
     m_ui->SourceTime1->setEnabled(is_opened && is_seekable);
     m_ui->SourceTime2->setEnabled(is_opened && is_seekable);
     m_ui->SourceSlider->setEnabled(is_opened && is_seekable);
+}
+
+void CamUtilWindow::addTabPage(VideoThread *video_thread) {
+    TabPage *page = new TabPage(video_thread);
+    m_ui->Tab->addTab(page, video_thread->initializeOnce(page));
 }
 
 void CamUtilWindow::destroyAllWidgets(QWidget *parent) {

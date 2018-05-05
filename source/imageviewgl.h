@@ -20,6 +20,9 @@ public:
     // デストラクタ
     ~ImageViewGl();
 
+    // BGRとRGBの変換を行う
+    void convertBgrToRgb(void);
+
     // 表示画像を設定する
     // 画像は次の再描画時に更新される
     Q_SLOT void setImage(const cv::Mat &image);
@@ -35,10 +38,6 @@ protected:
     // 描画時に呼ばれる
     void paintGL(void) override;
 
-
-
-
-
 private:
     // m_Imageへのアクセスを調停するミューテックス
     QMutex m_Mutex;
@@ -51,4 +50,7 @@ private:
 
     // 表示画像が更新されたことを示すフラグ
     bool m_UpdateFlag = false;
+
+    // BGRからRGBへの変換を行うフラグ
+    bool m_BgrFlag = false;
 };

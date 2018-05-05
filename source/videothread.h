@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <QThread>
+#include <QSettings>
 #include <QtWidgets/QWidget>
 #include <opencv2/core.hpp>
 #include "videoinput.h"
@@ -43,6 +44,12 @@ public:
 
     // 処理が終わったときに呼ばれるシグナル
     Q_SIGNAL void update(void);
+
+    // 設定ファイルから状態を復元する
+    virtual void restoreSettings(const QSettings &settings) {};
+
+    // 設定ファイルに状態を保存する
+    virtual void saveSettings(QSettings &settings) const {};
 
 protected:
     // 画像処理の本体

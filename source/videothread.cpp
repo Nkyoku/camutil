@@ -50,7 +50,7 @@ void VideoThread::doWork(void){
 	while (m_ExitFlag == false){
         qint64 interval = elapsed_timer.restart();
         event_loop.processEvents();
-
+        
 		// フレームを読み込む
         if (m_VideoInput->readFrame(input_image) == false) {
             QThread::msleep(TIMEOUT);
@@ -59,16 +59,16 @@ void VideoThread::doWork(void){
 
         // 処理を行う
         // 前後の時刻を参照して計算時間を求める
-        qint64 start_time = elapsed_timer.elapsed();
+        qint64 start_time = elapsed_timer.nsecsElapsed();
         processImage(input_image);
         emit update();
-        qint64 end_time = elapsed_timer.elapsed();
-        m_ProcessingTime = (end_time - start_time) * 0.001;
+        qint64 end_time = elapsed_timer.nsecsElapsed();
+        m_ProcessingTime = (end_time - start_time) * 0.000000001;
 
         // シーク可能な映像入力はウェイト無しでreadFrame()が完了するため
         // フレームレートを調整するためにウェイトを挿入する
         if (use_fps_limitter == true) {
-            double elapsed_time = end_time;
+            double elapsed_time = end_time * 0.000001;
             int wait_time = static_cast<int>(round(adjuster_setting - elapsed_time));
             if (0 < wait_time) {
                 QThread::msleep(wait_time);

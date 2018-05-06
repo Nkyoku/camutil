@@ -65,7 +65,7 @@
     <ClCompile Include="source\videothread\preview.cpp">
       <Filter>Source Files\videothread</Filter>
     </ClCompile>
-    <ClCompile Include="source\videothread\lenscalibration.cpp">
+    <ClCompile Include="source\videothread\calibration.cpp">
       <Filter>Source Files\videothread</Filter>
     </ClCompile>
   </ItemGroup>
@@ -91,7 +91,7 @@
     <QtMoc Include="source\tabpage.h">
       <Filter>Header Files</Filter>
     </QtMoc>
-    <QtMoc Include="source\videothread\lenscalibration.h">
+    <QtMoc Include="source\videothread\calibration.h">
       <Filter>Header Files\videothread</Filter>
     </QtMoc>
   </ItemGroup>
@@ -102,7 +102,7 @@
     <QtUic Include="source\camutilwindow.ui">
       <Filter>Form Files</Filter>
     </QtUic>
-    <QtUic Include="source\videothread\lenscalibration.ui">
+    <QtUic Include="source\videothread\calibration.ui">
       <Filter>Form Files\videothread</Filter>
     </QtUic>
   </ItemGroup>

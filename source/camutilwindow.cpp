@@ -2,7 +2,7 @@
 #include "ui_camutilwindow.h"
 #include "tabpage.h"
 #include "videothread/preview.h"
-#include "videothread/lenscalibration.h"
+#include "videothread/calibration.h"
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QSettings>
@@ -23,7 +23,7 @@ CamUtilWindow::CamUtilWindow(QWidget *parent)
 
     // タブに各VideoThreadのGUIのページを作成する
     addTabPage(new VideoPreviewThread(&m_VideoInput));
-    addTabPage(new VideoLensCalibrationThread(&m_VideoInput));
+    addTabPage(new VideoCalibrationThread(&m_VideoInput));
 
     connect(m_ui->SourceSelect, &QPushButton::clicked, &m_SourceDialog, &QDialog::exec);
 	connect(m_ui->SourceOpen, &QPushButton::clicked, this, &CamUtilWindow::openSource);

@@ -52,6 +52,9 @@ public:
     virtual void saveSettings(QSettings &settings) const {};
 
 protected:
+    // 映像入力
+    VideoInput * m_VideoInput = nullptr;
+    
     // 画像処理の本体
     virtual void processImage(const cv::Mat &input_image) = 0;
 
@@ -64,9 +67,6 @@ private:
 
 	// スレッドを終了させるフラグ
 	volatile bool m_ExitFlag = false;
-
-    // 映像入力
-    VideoInput *m_VideoInput = nullptr;
 
     // 処理時間 [s]
     double m_ProcessingTime = 0;

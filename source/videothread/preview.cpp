@@ -28,7 +28,7 @@ void VideoPreviewThread::initialize(QWidget *parent) {
 
     m_Right = new ImageViewGl;
     m_Right->convertBgrToRgb();
-    grid_layout->addWidget(m_Right);
+    grid_layout->addWidget(m_Right, 0, 1);
 
     connect(this, &VideoThread::update, m_Left, QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
     connect(this, &VideoThread::update, m_Right, QOverload<>::of(&QWidget::update), Qt::QueuedConnection);

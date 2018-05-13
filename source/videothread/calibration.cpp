@@ -105,12 +105,12 @@ void VideoCalibrationThread::processImage(const cv::Mat &input_image) {
             QIcon icon(QPixmap::fromImage(QImage(preview.data, preview.cols, preview.rows, QImage::Format_RGB888)));
             
             // チェスボードの点群情報を生成する
-            float dimmension = static_cast<float>(m_ui->PatternDimmension->value());
+            double dimmension = m_ui->PatternDimmension->value() * 0.001;
             std::vector<cv::Point3f> object_points;
             object_points.reserve(pattern_cols * pattern_rows);
             for (int row = 0; row < pattern_rows; row++) {
                 for (int col = 0; col < pattern_cols; col++) {
-                    object_points.push_back(cv::Point3f(col * dimmension, row * dimmension, 0.0));
+                    object_points.push_back(cv::Point3f(static_cast<float>(col * dimmension), static_cast<float>(row * dimmension), 0.0f));
                 }
             }
 

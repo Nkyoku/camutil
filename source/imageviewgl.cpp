@@ -51,6 +51,7 @@ void ImageViewGl::paintGL(void) {
                 m_Texture->setFormat(QOpenGLTexture::RGBA8_UNorm);
                 m_Texture->allocateStorage(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8);
                 m_Texture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+                m_Texture->setWrapMode(QOpenGLTexture::ClampToEdge);
             }
             QOpenGLTexture::PixelFormat pixel_format;
             if (m_BgrFlag == false) {

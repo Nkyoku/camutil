@@ -71,6 +71,9 @@
     <ClCompile Include="source\videothread\undistort.cpp">
       <Filter>Source Files\videothread</Filter>
     </ClCompile>
+    <ClCompile Include="source\videothread\sgbm.cpp">
+      <Filter>Source Files\videothread</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="source\sourcedialog.h">
@@ -95,6 +98,9 @@
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="source\videothread\calibration.h">
+      <Filter>Header Files\videothread</Filter>
+    </QtMoc>
+    <QtMoc Include="source\videothread\sgbm.h">
       <Filter>Header Files\videothread</Filter>
     </QtMoc>
   </ItemGroup>

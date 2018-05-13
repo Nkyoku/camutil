@@ -18,25 +18,7 @@ void ImageViewGl::convertBgrToRgb(void) {
 
 void ImageViewGl::initializeGL(void) {
     initializeOpenGLFunctions();
-    
     glClearColor(0.0f, 0.5f, 0.5f, 1.0f);
-
-    /*
-    static uint8_t tex[] = {
-        255, 255, 255, 255,     0,   0,   0, 255,   255, 255, 255 ,255,     0,   0,   0, 255,
-        255,   0,   0, 255,     0, 255,   0, 255,     0,   0, 255 ,255,   255, 255, 255, 255,
-        128,   0,   0, 255,     0, 128,   0, 255,     0,   0, 128 ,255,   128, 128, 128, 255,
-        255, 255,   0, 255,   255,   0, 255, 255,     0, 255, 255 ,255,   255, 255, 255, 255,
-    };
-
-    m_Texture = new QOpenGLTexture(QOpenGLTexture::Target2D);
-    m_Texture->setSize(4, 4);
-    m_Texture->setFormat(QOpenGLTexture::RGBAFormat);
-    m_Texture->allocateStorage(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8);
-    m_Texture->setData(0, 0, QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, tex);
-    m_Texture->setMinMagFilters(QOpenGLTexture::Nearest, QOpenGLTexture::Nearest);
-    */
-    
 }
 
 void ImageViewGl::resizeGL(int width, int height) {

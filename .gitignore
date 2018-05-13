@@ -14,6 +14,7 @@
 
 # Configuration files
 *.ini
+calibration*.xml
 
 # Temporary files
 *.log

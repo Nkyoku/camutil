@@ -20,7 +20,7 @@ public:
     // デストラクタ
     ~ImageViewGl();
 
-    // BGRとRGBの変換を行う
+    // BGRとRGBの変換を行うように設定する
     void convertBgrToRgb(void);
 
     // 表示画像を設定する

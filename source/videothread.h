@@ -25,6 +25,9 @@ public:
     // 画像などを表示するためのウィジェットへのポインタが格納される
     virtual void initialize(QWidget *parent) = 0;
 
+    // スレッド開始前の状態に戻す
+    virtual void uninitialize(void) {};
+
 	// スレッドを開始する
 	Q_SLOT void startThread(QThread::Priority priority = QThread::InheritPriority);
 
@@ -53,7 +56,7 @@ public:
 
 protected:
     // 映像入力
-    VideoInput * m_VideoInput = nullptr;
+    VideoInput *m_VideoInput = nullptr;
     
     // 画像処理の本体
     virtual void processImage(const cv::Mat &input_image) = 0;

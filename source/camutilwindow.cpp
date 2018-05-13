@@ -11,7 +11,7 @@
 #include <QtWidgets/QBoxLayout>
 #include <QtWidgets/QMessageBox>
 
-const char CamUtilWindow::kConfigPath[] = "config.ini";
+const char CamUtilWindow::kConfigFilePath[] = "config.ini";
 
 CamUtilWindow::CamUtilWindow(QWidget *parent)
 	: QMainWindow(parent)
@@ -93,7 +93,7 @@ CamUtilWindow::~CamUtilWindow(){
 }
 
 void CamUtilWindow::restoreSettings(void) {
-    QSettings settings(kConfigPath, QSettings::IniFormat);
+    QSettings settings(kConfigFilePath, QSettings::IniFormat);
     restoreState(settings.value("WindowState").toByteArray());
     m_ui->Splitter->restoreState(settings.value(tr("SplitterState")).toByteArray());
     m_SourceDialog.restoreSettings(settings);
@@ -103,7 +103,7 @@ void CamUtilWindow::restoreSettings(void) {
 }
 
 void CamUtilWindow::saveSettings(void) const {
-    QSettings settings(kConfigPath, QSettings::IniFormat);
+    QSettings settings(kConfigFilePath, QSettings::IniFormat);
     settings.setValue("WindowState", saveState());
     settings.setValue("SplitterState", m_ui->Splitter->saveState());
     m_SourceDialog.saveSettings(settings);
@@ -176,6 +176,7 @@ bool CamUtilWindow::openSource(void){
 void CamUtilWindow::closeSource(void) {
     if (m_CurrentVideoThread != nullptr) {
         m_CurrentVideoThread->quitThread();
+        m_CurrentVideoThread->uninitialize();
         m_CurrentVideoThread = nullptr;
         destroyAllWidgets(m_ui->OutputView);
         delete m_ui->OutputView->layout();

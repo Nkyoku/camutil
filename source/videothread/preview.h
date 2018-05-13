@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../videothread.h"
+#include "undistort.h"
 
 QT_FORWARD_DECLARE_CLASS(ImageViewGl);
 
@@ -16,9 +17,13 @@ public:
 
     virtual void initialize(QWidget *parent) override;
 
+    virtual void uninitialize(void) override;
+
 protected:
     virtual void processImage(const cv::Mat &input_image) override;
 
 private:
+    Undistort m_Undistort;
+
     ImageViewGl *m_Left, *m_Right;
 };

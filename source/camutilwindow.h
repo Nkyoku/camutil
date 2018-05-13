@@ -28,7 +28,7 @@ public:
 
 private:
     // 設定ファイル名
-    static const char kConfigPath[];
+    static const char kConfigFilePath[];
 
     // Qt Designerで作成したUI
     Ui_CamUtilWindow *m_ui;

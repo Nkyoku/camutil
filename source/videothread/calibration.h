@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../videothread.h"
+#include "undistort.h"
 
 QT_FORWARD_DECLARE_CLASS(Ui_Calibration);
 QT_FORWARD_DECLARE_CLASS(ImageViewGl);
@@ -16,6 +17,8 @@ public:
     virtual QString initializeOnce(QWidget *parent) override;
 
     virtual void initialize(QWidget *parent) override;
+
+    virtual void uninitialize(void) override;
 
     virtual void restoreSettings(const QSettings &settings) override;
 
@@ -43,17 +46,11 @@ private:
     // 撮影された点群情報
     std::vector<std::vector<cv::Point2f>> m_ImagePoints[2];
 
-    // カメラの内部パラメータ行列
-    cv::Mat m_CameraMatrix[2];
-
-    // 歪み係数
-    cv::Mat m_DistortionCoefficients[2];
-
-    // 歪み補正マップ
-    cv::Mat m_Map1[2], m_Map2[2];
+    // 歪み補正器
+    Undistort m_Undistort;
 
     // 表示画像
-    ImageViewGl *m_Original[2], *m_Undistort[2];
+    ImageViewGl *m_Original[2], *m_Undistorted[2];
 
     // 取得した点群情報を破棄する
     Q_SLOT void clearAllPoints(void);
@@ -61,4 +58,6 @@ private:
     // 取得した点群情報から歪み補正を行う
     Q_SLOT void applyCalibration(void);
 
+    // 補正情報を保存する
+    Q_SLOT void saveCalibration(void);
 };

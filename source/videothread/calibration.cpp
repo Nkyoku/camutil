@@ -21,37 +21,34 @@ QString VideoCalibrationThread::initializeOnce(QWidget *parent) {
     });
     connect(m_ui->Calibrate, &QPushButton::clicked, this, &VideoCalibrationThread::applyCalibration, Qt::QueuedConnection);
     connect(m_ui->Clear, &QPushButton::clicked, this, &VideoCalibrationThread::clearAllPoints, Qt::QueuedConnection);
+    connect(m_ui->SetAsDefault, &QPushButton::clicked, this, &VideoCalibrationThread::saveCalibration, Qt::QueuedConnection);
 
     return tr("Calibration");
 }
 
 void VideoCalibrationThread::initialize(QWidget *parent) {
+    uninitialize();
+
+    QSize size = m_VideoInput->sourceResolution();
+    m_Undistort.load(size.width() / 2, size.height());
+
     // 補正前と補正後の画像を表示するImageViewGlを生成
     QGridLayout *grid_layout = new QGridLayout;
     parent->setLayout(grid_layout);
     for (int side = 0; side < 2; side++) {
         m_Original[side] = new ImageViewGl;
         grid_layout->addWidget(m_Original[side], 0, side);
-        m_Undistort[side] = new ImageViewGl;
-        grid_layout->addWidget(m_Undistort[side], 1, side);
+        m_Undistorted[side] = new ImageViewGl;
+        grid_layout->addWidget(m_Undistorted[side], 1, side);
         connect(this, &VideoThread::update, m_Original[side], QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
-        connect(this, &VideoThread::update, m_Undistort[side], QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
+        connect(this, &VideoThread::update, m_Undistorted[side], QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
     }
+}
 
-    // 変数とUIを初期化
+void VideoCalibrationThread::uninitialize(void) {
     m_CaptureCounter = 0;
-    m_ObjectPoints.clear();
-    m_ImagePoints[0].clear();
-    m_ImagePoints[1].clear();
-    m_CameraMatrix[0] = cv::Mat();
-    m_CameraMatrix[1] = cv::Mat();
-    m_DistortionCoefficients[0] = cv::Mat();
-    m_DistortionCoefficients[1] = cv::Mat();
-    m_Map1[0] = cv::Mat();
-    m_Map1[1] = cv::Mat();
-    m_Map2[0] = cv::Mat();
-    m_Map2[1] = cv::Mat();
-    m_ui->CaptureList->clear();
+    clearAllPoints();
+    m_Undistort.destroy();
 }
 
 void VideoCalibrationThread::restoreSettings(const QSettings &settings) {
@@ -78,8 +75,14 @@ void VideoCalibrationThread::processImage(const cv::Mat &input_image) {
     std::vector<cv::Point2f> image_points[2];
     for (int side = 0; side < 2; side++) {
         cv::cvtColor(cv::Mat(input_image, cv::Rect(side * width, 0, width, height)), original[side], cv::COLOR_BGR2RGB);
+    }
+    for (int side = 0; side < 2; side++) {
         bool found = cv::findChessboardCorners(original[side], pattern_size, image_points[side], cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE | cv::CALIB_CB_FAST_CHECK);
         cv::drawChessboardCorners(original[side], pattern_size, image_points[side], found);
+        if (found == false) {
+            // 左カメラで正しいパターンが検知できなかったときは右カメラの処理を行わない
+            break;
+        }
     }
 
     // Captureボタンが押されたとき検出された点群情報を保存してプレビューをCaptureListに表示する
@@ -121,13 +124,7 @@ void VideoCalibrationThread::processImage(const cv::Mat &input_image) {
 
     // 歪みを補正して表示する
     for (int side = 0; side < 2; side++) {
-        if (!m_Map1[side].empty() && !m_Map2[side].empty()) {
-            cv::Mat undistort;
-            cv::remap(original[side], undistort, m_Map1[side], m_Map2[side], cv::INTER_LINEAR);
-            m_Undistort[side]->setImage(undistort);
-        } else {
-            m_Undistort[side]->setImage(cv::Mat());
-        }
+        m_Undistorted[side]->setImage(m_Undistort.undistort(original[side], side, true));
         m_Original[side]->setImage(original[side]);
     }
 }
@@ -144,20 +141,10 @@ void VideoCalibrationThread::applyCalibration(void) {
         return;
     }
 
-    QSize size_qt = m_VideoInput->sourceResolution();
-    cv::Size size(size_qt.width() / 2, size_qt.height());
+    QSize size = m_VideoInput->sourceResolution();
+    m_Undistort.calibrate(size.width() / 2, size.height(), m_ObjectPoints, m_ImagePoints[0], m_ImagePoints[1]);
+}
 
-    for (int side = 0; side < 2; side++) {
-        std::vector<cv::Mat> rvecs, tvecs;
-        cv::calibrateCamera(m_ObjectPoints, m_ImagePoints[side], size, m_CameraMatrix[side], m_DistortionCoefficients[side], rvecs, tvecs);
-    }
-
-    cv::Mat R, T, E, F;
-    cv::stereoCalibrate(m_ObjectPoints, m_ImagePoints[0], m_ImagePoints[1], m_CameraMatrix[0], m_DistortionCoefficients[0], m_CameraMatrix[1], m_DistortionCoefficients[1], size, R, T, E, F);
-
-    cv::Mat R1, R2, P1, P2, Q;
-    cv::stereoRectify(m_CameraMatrix[0], m_DistortionCoefficients[0], m_CameraMatrix[1], m_DistortionCoefficients[1], size, R, T, R1, R2, P1, P2, Q);
-
-    cv::initUndistortRectifyMap(m_CameraMatrix[0], m_DistortionCoefficients[0], R1, P1, size, CV_32FC1, m_Map1[0], m_Map2[0]);
-    cv::initUndistortRectifyMap(m_CameraMatrix[1], m_DistortionCoefficients[1], R2, P2, size, CV_32FC1, m_Map1[1], m_Map2[1]);
+void VideoCalibrationThread::saveCalibration(void) {
+    m_Undistort.save();
 }

@@ -42,5 +42,5 @@ void VideoPreviewThread::processImage(const cv::Mat &input_image) {
     int width = input_image.cols / 2;
     int height = input_image.rows;
     m_Left->setImage(m_Undistort.undistort(cv::Mat(input_image, cv::Rect(0, 0, width, height)), 0));
-    m_Right->setImage(m_Undistort.undistort(cv::Mat(input_image, cv::Rect(width, 0, width, height)), 0));
+    m_Right->setImage(m_Undistort.undistort(cv::Mat(input_image, cv::Rect(width, 0, width, height)), 1));
 }

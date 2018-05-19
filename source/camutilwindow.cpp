@@ -4,6 +4,7 @@
 #include "videothread/preview.h"
 #include "videothread/calibration.h"
 #include "videothread/sgbm.h"
+#include "videothread/stereo.h"
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QSettings>
@@ -26,6 +27,7 @@ CamUtilWindow::CamUtilWindow(QWidget *parent)
     addTabPage(new VideoPreviewThread(&m_VideoInput));
     addTabPage(new VideoCalibrationThread(&m_VideoInput));
     addTabPage(new VideoSgbmThread(&m_VideoInput));
+    addTabPage(new VideoStereoThread(&m_VideoInput));
 
     connect(m_ui->SourceSelect, &QPushButton::clicked, &m_SourceDialog, &QDialog::exec);
 	connect(m_ui->SourceOpen, &QPushButton::clicked, this, &CamUtilWindow::openSource);

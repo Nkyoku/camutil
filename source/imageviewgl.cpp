@@ -1,19 +1,43 @@
 ﻿#include "imageviewgl.h"
 #include <QMetaObject>
+#include <QMouseEvent>
 #include <QOpenGLTexture>
+#include <QOpenGLPixelTransferOptions>
 
 ImageViewGl::ImageViewGl(QWidget *parent)
     : QOpenGLWidget(parent), QOpenGLFunctions()
 {
-
+    m_PixelTransferOptions = new QOpenGLPixelTransferOptions();
+    m_PixelTransferOptions->setAlignment(1);
 }
 
 ImageViewGl::~ImageViewGl() {
     delete m_Texture;
 }
 
-void ImageViewGl::convertBgrToRgb(void) {
-    m_BgrFlag = true;
+void ImageViewGl::convertBgrToRgb(bool enable) {
+    m_BgrFlag = enable;
+}
+
+void ImageViewGl::useMouse(bool enable) {
+    m_MouseNotify = enable;
+    setMouseTracking(enable);
+}
+
+cv::Size ImageViewGl::optimumImageSize(int original_width, int original_height) {
+    double ratio_image = static_cast<double>(original_width) / static_cast<double>(original_height);
+    double ratio_widget = static_cast<double>(width()) / static_cast<double>(height());
+    double optimum_width, optimum_height;
+    if (ratio_image < ratio_widget) {
+        // 表示画像の縦幅をウィジェットに合わせる
+        optimum_width = ratio_image / ratio_widget * width();
+        optimum_height = height();
+    } else {
+        // 表示画像の横幅をウィジェットに合わせる
+        optimum_width = width();
+        optimum_height = ratio_widget / ratio_image * height();
+    }
+    return cv::Size(static_cast<int>(round(optimum_width)), static_cast<int>(round(optimum_height)));
 }
 
 void ImageViewGl::initializeGL(void) {
@@ -54,40 +78,21 @@ void ImageViewGl::paintGL(void) {
                 m_Texture->setWrapMode(QOpenGLTexture::ClampToEdge);
             }
             QOpenGLTexture::PixelFormat pixel_format;
-            if (m_BgrFlag == false) {
-                switch (m_Image.channels()) {
-                case 1:
-                    pixel_format = QOpenGLTexture::Luminance;
-                    break;
-                case 2:
-                    pixel_format = QOpenGLTexture::RG;
-                    break;
-                case 3:
-                    pixel_format = QOpenGLTexture::RGB;
-                    break;
-                case 4:
-                    pixel_format = QOpenGLTexture::RGBA;
-                    break;
-                default:
-                    Q_ASSERT(false);
-                }
-            } else {
-                switch (m_Image.channels()) {
-                case 1:
-                    pixel_format = QOpenGLTexture::Luminance;
-                    break;
-                case 2:
-                    pixel_format = QOpenGLTexture::RG;
-                    break;
-                case 3:
-                    pixel_format = QOpenGLTexture::BGR;
-                    break;
-                case 4:
-                    pixel_format = QOpenGLTexture::BGRA;
-                    break;
-                default:
-                    Q_ASSERT(false);
-                }
+            switch (m_Image.channels()) {
+            case 1:
+                pixel_format = QOpenGLTexture::Luminance;
+                break;
+            case 2:
+                pixel_format = QOpenGLTexture::RG;
+                break;
+            case 3:
+                pixel_format = (m_BgrFlag == true) ? QOpenGLTexture::BGR : QOpenGLTexture::RGB;
+                break;
+            case 4:
+                pixel_format = (m_BgrFlag == true) ? QOpenGLTexture::BGRA : QOpenGLTexture::RGBA;
+                break;
+            default:
+                Q_ASSERT(false);
             }
             QOpenGLTexture::PixelType pixel_type;
             switch (m_Image.depth()) {
@@ -112,7 +117,7 @@ void ImageViewGl::paintGL(void) {
             default:
                 Q_ASSERT(false);
             }
-            m_Texture->setData(0, 0, pixel_format, pixel_type, m_Image.data);
+            m_Texture->setData(0, 0, pixel_format, pixel_type, m_Image.data, m_PixelTransferOptions);
         }
 
         m_Mutex.unlock();
@@ -151,9 +156,46 @@ void ImageViewGl::paintGL(void) {
     }
 }
 
+void ImageViewGl::mouseMoveEvent(QMouseEvent *event) {
+    if (m_MouseNotify == true) {
+        QPoint point = toImagePosition(event);
+        emit mouseMoved(point.x(), point.y());
+    }
+}
+
+void ImageViewGl::mousePressEvent(QMouseEvent *event) {
+    if (m_MouseNotify == true) {
+        QPoint point = toImagePosition(event);
+        emit mousePressed(point.x(), point.y(), event->button());
+    }
+}
+
 void ImageViewGl::setImage(const cv::Mat &image) {
     m_Mutex.lock();
     image.copyTo(m_Image);
     m_UpdateFlag = true;
     m_Mutex.unlock();
+}
+
+QPoint ImageViewGl::toImagePosition(QMouseEvent *event) {
+    QPoint point = event->pos();
+    double widget_x = static_cast<double>(point.x()) / static_cast<double>(width());
+    double widget_y = static_cast<double>(point.y()) / static_cast<double>(height());
+
+    double normalized_width, normalized_height;
+    double ratio_image = static_cast<double>(m_Image.cols) / static_cast<double>(m_Image.rows);
+    double ratio_widget = static_cast<double>(width()) / static_cast<double>(height());
+    if (ratio_image < ratio_widget) {
+        // 表示画像の縦幅をウィジェットに合わせる
+        normalized_width = ratio_image / ratio_widget;
+        normalized_height = 1.0;
+    } else {
+        // 表示画像の横幅をウィジェットに合わせる
+        normalized_width = 1.0;
+        normalized_height = ratio_widget / ratio_image;
+    }
+
+    int image_x = static_cast<int>(round(((widget_x - 0.5) / normalized_width + 0.5) * m_Image.cols));
+    int image_y = static_cast<int>(round(((widget_y - 0.5) / normalized_height + 0.5) * m_Image.rows));
+    return QPoint(image_x, image_y);
 }

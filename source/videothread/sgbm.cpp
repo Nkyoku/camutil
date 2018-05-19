@@ -57,7 +57,7 @@ void VideoSgbmThread::processImage(const cv::Mat &input_image) {
     
     cv::Mat color[2];
     m_Undistort.undistort(cv::Mat(input_image, cv::Rect(0, 0, width, height)), color[0], 0);
-    m_Undistort.undistort(cv::Mat(input_image, cv::Rect(width, 0, width, height)), color[1], 0);
+    m_Undistort.undistort(cv::Mat(input_image, cv::Rect(width, 0, width, height)), color[1], 1);
 
     cv::Mat gray[2];
     cv::cvtColor(color[0], gray[0], cv::COLOR_BGR2GRAY);

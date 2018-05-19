@@ -37,6 +37,9 @@
     <Filter Include="Form Files\videothread">
       <UniqueIdentifier>{1e609c45-4b19-452a-99d9-f13797869d00}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\3rdparty">
+      <UniqueIdentifier>{c840c368-66fa-4a11-9fcf-c8c6c5a133e7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="camutil.qrc">
@@ -74,6 +77,12 @@
     <ClCompile Include="source\videothread\sgbm.cpp">
       <Filter>Source Files\videothread</Filter>
     </ClCompile>
+    <ClCompile Include="source\videothread\stereo.cpp">
+      <Filter>Source Files\videothread</Filter>
+    </ClCompile>
+    <ClCompile Include="source\3rdparty\fastguidedfilter.cpp">
+      <Filter>Source Files\3rdparty</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="source\sourcedialog.h">
@@ -101,6 +110,9 @@
       <Filter>Header Files\videothread</Filter>
     </QtMoc>
     <QtMoc Include="source\videothread\sgbm.h">
+      <Filter>Header Files\videothread</Filter>
+    </QtMoc>
+    <QtMoc Include="source\videothread\stereo.h">
       <Filter>Header Files\videothread</Filter>
     </QtMoc>
   </ItemGroup>

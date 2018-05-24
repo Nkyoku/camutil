@@ -35,7 +35,7 @@ private:
     int kCoarseRatio = 4;
    
     // 設定された最大偏差
-    int m_MaxDisparity = 64;
+    int m_MaxDisparity = 32;
 
     // 表示画像
     ImageViewGl *m_Color[2], *m_Depth[2];

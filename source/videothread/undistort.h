@@ -28,6 +28,12 @@ public:
     // 補正が行われないとき、empty_if_uncalibrated==falseであればオリジナルの画像を返し、trueであれば空のMatを返す
     cv::Mat undistort(const cv::Mat &distorted_image, int side, bool empty_if_uncalibrated = false);
 
+    // 視差マップから実空間の座標マップを計算する
+    bool reprojectImageTo3D(const cv::Mat &disparity, cv::Mat &output, bool missing_value = false);
+
+    // 座標と視差の組み合わせから実空間の座標を計算する
+    bool reprojectPointsTo3D(const cv::Mat &disparity, cv::Mat &output);
+
     // キャリブレーション結果から補正マップを生成する
     bool calibrate(int width, int height, const std::vector<std::vector<cv::Point3f>> &object_points, const std::vector<std::vector<cv::Point2f>> &image_points_left, const std::vector<std::vector<cv::Point2f>> &image_points_right);
 

@@ -89,6 +89,22 @@ cv::Mat Undistort::undistort(const cv::Mat &distorted_image, int side, bool empt
     return result;
 }
 
+bool Undistort::reprojectImageTo3D(const cv::Mat &disparity, cv::Mat &output, bool missing_value) {
+    if (m_DisparityMatrix.empty() == true) {
+        return false;
+    }
+    cv::reprojectImageTo3D(disparity, output, m_DisparityMatrix, missing_value);
+    return true;
+}
+
+bool Undistort::reprojectPointsTo3D(const cv::Mat &disparity, cv::Mat &output) {
+    if (m_DisparityMatrix.empty() == true) {
+        return false;
+    }
+    cv::perspectiveTransform(disparity, output, m_DisparityMatrix);
+    return true;
+}
+
 bool Undistort::calibrate(int width, int height, const std::vector<std::vector<cv::Point3f>> &object_points, const std::vector<std::vector<cv::Point2f>> &image_points_left, const std::vector<std::vector<cv::Point2f>> &image_points_right) {
     if (object_points.empty() || image_points_left.empty() || image_points_right.empty()) {
         return false;

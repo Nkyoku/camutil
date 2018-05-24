@@ -98,11 +98,39 @@ void VideoStereoThread::processImage(const cv::Mat &input_image) {
     cv::resize(disparity8_l, disparity8_org_l, cv::Size(), kCoarseRatio, kCoarseRatio, INTER_LANCZOS4);
     cv::resize(filtered_disparity8_l, filtered_disparity8_org_l, cv::Size(), kCoarseRatio, kCoarseRatio, INTER_LANCZOS4);*/
 
-    cv::Mat depth_scaled, depth_scaled_color;
-    cv::resize(m_CoarseDepthMap, depth_scaled, m_Depth[0]->optimumImageSize(coarse_width - m_MaxDisparity, coarse_height));
+    cv::Mat depth_8bit, depth_scaled, depth_scaled_color;
+    m_CoarseDepthMap.convertTo(depth_8bit, CV_8U, 2.0, 0);
+    cv::resize(depth_8bit, depth_scaled, m_Depth[0]->optimumImageSize(m_CoarseDepthMap.cols, m_CoarseDepthMap.rows));
     cv::cvtColor(depth_scaled, depth_scaled_color, cv::COLOR_GRAY2RGB);
     cv::circle(depth_scaled_color, cv::Point(m_WatchPointX, m_WatchPointY), 5, cv::Scalar(255, 0, 0), 2);
     
+
+    double image_x = static_cast<double>(m_WatchPointX) * m_CoarseDepthMap.cols / depth_scaled.cols;
+    double image_y = static_cast<double>(m_WatchPointY) * m_CoarseDepthMap.rows / depth_scaled.rows;
+    double actual_x = (image_x + m_MaxDisparity) * kCoarseRatio;
+    double actual_y = image_y * kCoarseRatio;
+
+    if ((0.0 <= image_x) && (0.0 <= image_y) && (image_x < (coarse_width - m_MaxDisparity)) && (image_y < coarse_height)) {
+        cv::Mat points_input(1, 1, CV_32FC3), points_output;
+        points_input.at<Vec3f>(0)[0] = image_x;
+        points_input.at<Vec3f>(0)[1] = image_y;
+        points_input.at<Vec3f>(0)[2] = m_CoarseDepthMap.at<float>(image_y, image_x);
+        m_Undistort.reprojectPointsTo3D(points_input, points_output);
+        if (points_output.rows == 1) {
+            Vec3f point = points_output.at<Vec3f>(0);
+            std::ostringstream text;
+            text << "(" << point[0] << ", " << point[1] << ", " << point[2] << ")";
+            //text << "(" << actual_x << ", " << actual_y << ", " << m_CoarseDepthMap.at<float>(image_y, image_x) << ")";
+            cv::putText(depth_scaled_color, text.str(), cv::Point(4, 16), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0));
+        }
+    }
+
+    /*cv::Mat depth_scaled;
+    m_CoarseDepthMap.convertTo(depth_scaled, CV_8U, 1, 0);*/
+
+
+
+
     m_Color[0]->setImage(m_ColorImage[0]);
     m_Color[1]->setImage(m_ColorImage[1]);
     m_Depth[0]->setImage(depth_scaled_color);
@@ -116,9 +144,9 @@ void VideoStereoThread::findDisparity(const std::vector<cv::Mat> &cost_volume, c
     int max_disparity = static_cast<int>(cost_volume.size());
     int width = cost_volume[0].cols;
     int height = cost_volume[0].rows;
-    disparity.create(height, width, CV_8UC1);
+    disparity.create(height, width, CV_32FC1);
     for (int y = 0; y < height; y++) {
-        uint8_t *disp_ptr = disparity.ptr(y);
+        float *disp_ptr = disparity.ptr<float>(y);
         for (int x = 0; x < width; x++) {
             int min_p_d = -1;
             double min_p = 65535;
@@ -129,7 +157,7 @@ void VideoStereoThread::findDisparity(const std::vector<cv::Mat> &cost_volume, c
                     min_p = p;
                 }
             }
-            disp_ptr[x] = static_cast<int>(round(min_p_d * scale));
+            disp_ptr[x] = static_cast<float>(min_p_d * scale);
         }
     }
 }
@@ -142,9 +170,9 @@ void VideoStereoThread::findDisparitySubPixel(const std::vector<cv::Mat> &cost_v
     int width = cost_volume[0].cols;
     int height = cost_volume[0].rows;
     std::vector<double> p_list(max_disparity);
-    disparity.create(height, width, CV_8UC1);
+    disparity.create(height, width, CV_32FC1);
     for (int y = 0; y < height; y++) {
-        uint8_t *disp_ptr = disparity.ptr(y);
+        float *disp_ptr = disparity.ptr<float>(y);
         for (int x = 0; x < width; x++) {
             int d_min = 0;
             double p_min = cost_volume[0].at<float>(y, x);
@@ -161,7 +189,7 @@ void VideoStereoThread::findDisparitySubPixel(const std::vector<cv::Mat> &cost_v
             if ((d_min != 0) && (d_min != (max_disparity - 1))) {
                 double p_prev = p_list[d_min - 1];
                 double p_next = p_list[d_min + 1];
-                if (p_next <= p_prev) {
+                /*if (p_next <= p_prev) {
                     if (d_min < (max_disparity - 2)) {
                         double p_next2 = p_list[d_min + 2];
                         d_frac += (p_prev - p_next) / (p_prev - p_min - p_next + p_next2);
@@ -175,9 +203,10 @@ void VideoStereoThread::findDisparitySubPixel(const std::vector<cv::Mat> &cost_v
                     } else {
                         d_frac += (p_prev - p_next) / (p_next - p_min) * 0.5;
                     }
-                }
+                }*/
+                d_frac += 0.5 * (p_prev - p_next) / (p_prev - 2 * p_min + p_next);
             }
-            disp_ptr[x] = std::max(std::min(static_cast<int>(round(d_frac * scale)), 255), 0);
+            disp_ptr[x] = static_cast<float>(std::max(std::min(d_frac * scale, 255.0), 0.0));
         }
     }
 }
@@ -227,7 +256,7 @@ void VideoStereoThread::stereoMatching(void) {
     }
 
     // 視差を計算して返す
-    findDisparitySubPixel(m_CostVolume, m_CoarseDepthMap, 8);
+    findDisparitySubPixel(m_CostVolume, m_CoarseDepthMap, 4);
 }
 
 void VideoStereoThread::doCensus5x5Transform(const cv::Mat &src, cv::Mat &dst) {

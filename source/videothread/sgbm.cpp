@@ -8,7 +8,7 @@ VideoSgbmThread::VideoSgbmThread(VideoInput *video_input)
     : VideoThread(video_input)
 {
     m_Sgbm = cv::StereoSGBM::create(0, m_MaxDisparity, 5);
-};
+}
 
 VideoSgbmThread::~VideoSgbmThread(){
     quitThread();

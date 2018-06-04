@@ -15,6 +15,10 @@ ImageViewGl::~ImageViewGl() {
     delete m_Texture;
 }
 
+void ImageViewGl::setMirror(bool vertical) {
+    m_MirrorVertical = vertical;
+}
+
 void ImageViewGl::convertBgrToRgb(bool enable) {
     m_BgrFlag = enable;
 }
@@ -137,6 +141,9 @@ void ImageViewGl::paintGL(void) {
             // 表示画像の横幅をウィジェットに合わせる
             normalized_width = 1.0;
             normalized_height = ratio_widget / ratio_image;
+        }
+        if (m_MirrorVertical == true) {
+            normalized_height = -normalized_height;
         }
 
         // 描画する

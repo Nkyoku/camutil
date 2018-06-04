@@ -19,6 +19,9 @@ public:
     // デストラクタ
     ~ImageViewGl();
 
+    // 垂直に反転する
+    void setMirror(bool vertical = true);
+
     // BGRとRGBの変換を行うように設定する
     void convertBgrToRgb(bool enable = true);
 
@@ -69,6 +72,9 @@ private:
 
     // 表示画像が更新されたことを示すフラグ
     bool m_UpdateFlag = false;
+
+    // 垂直反転フラグ
+    bool m_MirrorVertical = false;
 
     // BGRからRGBへの変換を行うフラグ
     bool m_BgrFlag = false;

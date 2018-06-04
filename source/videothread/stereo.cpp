@@ -10,7 +10,7 @@ VideoStereoThread::VideoStereoThread(VideoInput *video_input)
     : VideoThread(video_input)
 {
     
-};
+}
 
 VideoStereoThread::~VideoStereoThread(){
     quitThread();
@@ -76,7 +76,93 @@ void VideoStereoThread::processImage(const cv::Mat &input_image) {
     cv::cvtColor(m_CoarseColorImage[1], m_CoarseGrayImage[1], cv::COLOR_BGR2GRAY);
     stereoMatching();
 
+    // 4方にスキャンして補間する
+    cv::Mat interpolated_depth(coarse_height, coarse_width - m_MaxDisparity, CV_32F);
 
+    /*std::vector<float> data_positions, data_values, data_weights;
+    std::vector<double> coefficients_x, coefficients_y;
+    for (int y = 0; y < coarse_height; y++) {
+        int image_width = coarse_width - m_MaxDisparity;
+        for (int x = 0; x < image_width; x++) {
+            static const double threshold = 10.0;
+            
+            int sx, sy;
+
+            data_positions.resize(0);
+            data_values.resize(0);
+            data_weights.resize(0);
+
+            // dx=-1, dy=0
+            double left_weight = 0.0;
+            for (sx = x; (0 <= sx) && (left_weight < threshold); sx--) {
+                double disparity = m_CoarseDepthMap.at<float>(y, sx);
+                double weight = m_CoarseLikelihoodMap.at<float>(y, sx);
+                weight *= weight;
+                data_positions.push_back(sx);
+                data_values.push_back(disparity);
+                data_weights.push_back(weight);
+                left_weight += weight;
+            }
+            int left_length = x - sx;
+
+            // dx=+1, dy=0
+            double right_weight = 0.0;
+            for (sx = x; (sx < image_width) && (right_weight < threshold); sx++) {
+                double disparity = m_CoarseDepthMap.at<float>(y, sx);
+                double weight = m_CoarseLikelihoodMap.at<float>(y, sx);
+                weight *= weight;
+                data_positions.push_back(sx);
+                data_values.push_back(disparity);
+                data_weights.push_back(weight);
+                right_weight += weight;
+            }
+            int right_length = sx - x;
+
+            bool x_ok = m_Wlr.compute1stOrder(data_positions, data_values, data_weights, coefficients_x);
+
+            data_positions.resize(0);
+            data_values.resize(0);
+            data_weights.resize(0);
+
+            // dx=0, dy=-1
+            double up_weight = 0.0;
+            for (sy = y; (0 <= sy) && (up_weight < threshold); sy--) {
+                double disparity = m_CoarseDepthMap.at<float>(sy, x);
+                double weight = m_CoarseLikelihoodMap.at<float>(sy, x);
+                weight *= weight;
+                data_positions.push_back(sy);
+                data_values.push_back(disparity);
+                data_weights.push_back(weight);
+                up_weight += weight;
+            }
+            int up_length = y - sy;
+
+            // dx=0, dy=+1
+            double down_weight = 0.0;
+            for (sy = y; (sy < coarse_height) && (down_weight < threshold); sy++) {
+                double disparity = m_CoarseDepthMap.at<float>(sy, x);
+                double weight = m_CoarseLikelihoodMap.at<float>(sy, x);
+                weight *= weight;
+                data_positions.push_back(sy);
+                data_values.push_back(disparity);
+                data_weights.push_back(weight);
+                down_weight += weight;
+            }
+            int down_length = sy - y;
+
+            bool y_ok = m_Wlr.compute1stOrder(data_positions, data_values, data_weights, coefficients_y);
+
+            if (x_ok && y_ok) {
+                double disparity_x = coefficients_x[0] + coefficients_x[1] * x;
+                double disparity_y = coefficients_y[0] + coefficients_y[1] * y;
+                double weight_x = (left_weight + right_weight) / (left_length + right_length);
+                double weight_y = (up_weight + down_weight) / (up_length + down_length);
+                interpolated_depth.at<float>(y, x) = (disparity_x * weight_x + disparity_y * weight_y) / (weight_x + weight_y);
+            } else {
+                interpolated_depth.at<float>(y, x) = m_CoarseDepthMap.at<float>(y, x);
+            }
+        }
+    }*/
 
 
 
@@ -99,7 +185,7 @@ void VideoStereoThread::processImage(const cv::Mat &input_image) {
     cv::resize(filtered_disparity8_l, filtered_disparity8_org_l, cv::Size(), kCoarseRatio, kCoarseRatio, INTER_LANCZOS4);*/
 
     cv::Mat depth_8bit, depth_scaled, depth_scaled_color;
-    m_CoarseDepthMap.convertTo(depth_8bit, CV_8U, 2.0, 0);
+    m_CoarseDepthMap.convertTo(depth_8bit, CV_8U, 2.0);
     cv::resize(depth_8bit, depth_scaled, m_Depth[0]->optimumImageSize(m_CoarseDepthMap.cols, m_CoarseDepthMap.rows));
     cv::cvtColor(depth_scaled, depth_scaled_color, cv::COLOR_GRAY2RGB);
     cv::circle(depth_scaled_color, cv::Point(m_WatchPointX, m_WatchPointY), 5, cv::Scalar(255, 0, 0), 2);
@@ -112,16 +198,19 @@ void VideoStereoThread::processImage(const cv::Mat &input_image) {
 
     if ((0.0 <= image_x) && (0.0 <= image_y) && (image_x < (coarse_width - m_MaxDisparity)) && (image_y < coarse_height)) {
         cv::Mat points_input(1, 1, CV_32FC3), points_output;
-        points_input.at<Vec3f>(0)[0] = image_x;
-        points_input.at<Vec3f>(0)[1] = image_y;
+        points_input.at<Vec3f>(0)[0] = actual_x;
+        points_input.at<Vec3f>(0)[1] = actual_y;
         points_input.at<Vec3f>(0)[2] = m_CoarseDepthMap.at<float>(image_y, image_x);
+        double likelihood = m_CoarseLikelihoodMap.at<float>(image_y, image_x);
         m_Undistort.reprojectPointsTo3D(points_input, points_output);
         if (points_output.rows == 1) {
             Vec3f point = points_output.at<Vec3f>(0);
-            std::ostringstream text;
-            text << "(" << point[0] << ", " << point[1] << ", " << point[2] << ")";
+            std::ostringstream text1, text2;
+            text1 << "(" << point[0] << ", " << point[1] << ", " << point[2] << ")";
+            text2 << "l=" << likelihood;
             //text << "(" << actual_x << ", " << actual_y << ", " << m_CoarseDepthMap.at<float>(image_y, image_x) << ")";
-            cv::putText(depth_scaled_color, text.str(), cv::Point(4, 16), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0));
+            cv::putText(depth_scaled_color, text1.str(), cv::Point(4, 16), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0));
+            cv::putText(depth_scaled_color, text2.str(), cv::Point(4, 32), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0));
         }
     }
 
@@ -130,11 +219,16 @@ void VideoStereoThread::processImage(const cv::Mat &input_image) {
 
 
 
+    cv::Mat likelihood_8bit;
+    m_CoarseLikelihoodMap.convertTo(likelihood_8bit, CV_8U, 255.0);
+
+    //cv::Mat interpolated_depth_8bit;
+    //interpolated_depth.convertTo(interpolated_depth_8bit, CV_8U, 2.0);
 
     m_Color[0]->setImage(m_ColorImage[0]);
     m_Color[1]->setImage(m_ColorImage[1]);
     m_Depth[0]->setImage(depth_scaled_color);
-    //m_Depth[1]->setImage(filtered_disparity8_org_l);
+    m_Depth[1]->setImage(likelihood_8bit);
 }
 
 void VideoStereoThread::findDisparity(const std::vector<cv::Mat> &cost_volume, cv::Mat &disparity, double scale) {
@@ -162,33 +256,38 @@ void VideoStereoThread::findDisparity(const std::vector<cv::Mat> &cost_volume, c
     }
 }
 
-void VideoStereoThread::findDisparitySubPixel(const std::vector<cv::Mat> &cost_volume, cv::Mat &disparity, double scale) {
+void VideoStereoThread::findDisparitySubPixel(const std::vector<cv::Mat> &cost_volume, cv::Mat &disparity, cv::Mat &likelihood, double scale) {
     if (cost_volume.empty() == true) {
         return;
     }
     int max_disparity = static_cast<int>(cost_volume.size());
     int width = cost_volume[0].cols;
     int height = cost_volume[0].rows;
-    std::vector<double> p_list(max_disparity);
+    std::vector<double> cost_list(max_disparity);
     disparity.create(height, width, CV_32FC1);
+    likelihood.create(height, width, CV_32FC1);
     for (int y = 0; y < height; y++) {
-        float *disp_ptr = disparity.ptr<float>(y);
+        float *disparity_ptr = disparity.ptr<float>(y);
+        float *likelihood_ptr = likelihood.ptr<float>(y);
         for (int x = 0; x < width; x++) {
-            int d_min = 0;
-            double p_min = cost_volume[0].at<float>(y, x);
-            p_list[0] = p_min;
-            for (int d = 1; d < max_disparity; d++) {
-                double p = cost_volume[d].at<float>(y, x);
-                p_list[d] = p;
-                if (p < p_min) {
-                    d_min = d;
-                    p_min = p;
+            int min_disp = 0;
+            double min_cost = cost_volume[0].at<float>(y, x);
+            double mean_cost = min_cost;
+            cost_list[0] = min_cost;
+            for (int disp = 1; disp < max_disparity; disp++) {
+                double cost = cost_volume[disp].at<float>(y, x);
+                cost_list[disp] = cost;
+                mean_cost += cost;
+                if (cost < min_cost) {
+                    min_disp = disp;
+                    min_cost = cost;
                 }
             }
-            double d_frac = d_min;
-            if ((d_min != 0) && (d_min != (max_disparity - 1))) {
-                double p_prev = p_list[d_min - 1];
-                double p_next = p_list[d_min + 1];
+            mean_cost /= max_disparity;
+            double subpixel_disp = min_disp;
+            if ((min_disp != 0) && (min_disp != (max_disparity - 1))) {
+                double prev_cost = cost_list[min_disp - 1];
+                double next_cost = cost_list[min_disp + 1];
                 /*if (p_next <= p_prev) {
                     if (d_min < (max_disparity - 2)) {
                         double p_next2 = p_list[d_min + 2];
@@ -204,9 +303,10 @@ void VideoStereoThread::findDisparitySubPixel(const std::vector<cv::Mat> &cost_v
                         d_frac += (p_prev - p_next) / (p_next - p_min) * 0.5;
                     }
                 }*/
-                d_frac += 0.5 * (p_prev - p_next) / (p_prev - 2 * p_min + p_next);
+                subpixel_disp += 0.5 * (prev_cost - next_cost) / (prev_cost - 2 * min_cost + next_cost);
             }
-            disp_ptr[x] = static_cast<float>(std::max(std::min(d_frac * scale, 255.0), 0.0));
+            disparity_ptr[x] = static_cast<float>(std::max(std::min(subpixel_disp * scale, 255.0), 0.0));
+            likelihood_ptr[x] = static_cast<float>((mean_cost - min_cost) / mean_cost);
         }
     }
 }
@@ -256,7 +356,7 @@ void VideoStereoThread::stereoMatching(void) {
     }
 
     // 視差を計算して返す
-    findDisparitySubPixel(m_CostVolume, m_CoarseDepthMap, 4);
+    findDisparitySubPixel(m_CostVolume, m_CoarseDepthMap, m_CoarseLikelihoodMap, kCoarseRatio);
 }
 
 void VideoStereoThread::doCensus5x5Transform(const cv::Mat &src, cv::Mat &dst) {

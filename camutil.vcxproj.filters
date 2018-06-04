@@ -40,6 +40,12 @@
     <Filter Include="Source Files\3rdparty">
       <UniqueIdentifier>{c840c368-66fa-4a11-9fcf-c8c6c5a133e7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\algorithm">
+      <UniqueIdentifier>{0c29b0c5-72a4-484e-b0fe-fb28dd4b38a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\algorithm">
+      <UniqueIdentifier>{ef811f11-51f1-4624-a8ee-93be95cbe6cd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="camutil.qrc">
@@ -83,6 +89,18 @@
     <ClCompile Include="source\3rdparty\fastguidedfilter.cpp">
       <Filter>Source Files\3rdparty</Filter>
     </ClCompile>
+    <ClCompile Include="source\videothread\fielddetector.cpp">
+      <Filter>Source Files\videothread</Filter>
+    </ClCompile>
+    <ClCompile Include="source\algorithm\weighted_linear_regression.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="source\algorithm\enhancement_filter.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="source\algorithm\field_detector.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="source\sourcedialog.h">
@@ -115,6 +133,9 @@
     <QtMoc Include="source\videothread\stereo.h">
       <Filter>Header Files\videothread</Filter>
     </QtMoc>
+    <QtMoc Include="source\videothread\fielddetector.h">
+      <Filter>Header Files\videothread</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="source\sourcedialog.ui">
@@ -133,6 +154,15 @@
     </ClInclude>
     <ClInclude Include="source\videothread\undistort.h">
       <Filter>Header Files\videothread</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\weighted_linear_regression.h">
+      <Filter>Header Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\enhancement_filter.h">
+      <Filter>Header Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\field_detector.h">
+      <Filter>Header Files\algorithm</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,10 +1,11 @@
 ﻿#include "camutilwindow.h"
 #include "ui_camutilwindow.h"
 #include "tabpage.h"
-#include "videothread/preview.h"
+//#include "videothread/preview.h"
 #include "videothread/calibration.h"
-#include "videothread/sgbm.h"
+//#include "videothread/sgbm.h"
 #include "videothread/stereo.h"
+#include "videothread/fielddetector.h"
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QSettings>
@@ -24,10 +25,11 @@ CamUtilWindow::CamUtilWindow(QWidget *parent)
 	m_ui->setupUi(this);
 
     // タブに各VideoThreadのGUIのページを作成する
-    addTabPage(new VideoPreviewThread(&m_VideoInput));
+    //addTabPage(new VideoPreviewThread(&m_VideoInput));
     addTabPage(new VideoCalibrationThread(&m_VideoInput));
-    addTabPage(new VideoSgbmThread(&m_VideoInput));
+    //addTabPage(new VideoSgbmThread(&m_VideoInput));
     addTabPage(new VideoStereoThread(&m_VideoInput));
+    addTabPage(new VideoFieldDetectorThread(&m_VideoInput));
 
     connect(m_ui->SourceSelect, &QPushButton::clicked, &m_SourceDialog, &QDialog::exec);
 	connect(m_ui->SourceOpen, &QPushButton::clicked, this, &CamUtilWindow::openSource);

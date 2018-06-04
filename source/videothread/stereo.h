@@ -3,6 +3,7 @@
 #include "../videothread.h"
 #include "undistort.h"
 #include <opencv2/calib3d.hpp>
+#include "algorithm/weighted_linear_regression.h"
 
 QT_FORWARD_DECLARE_CLASS(ImageViewGl);
 
@@ -31,13 +32,16 @@ private:
     // 歪み補正器
     Undistort m_Undistort;
 
+    // 線形回帰
+    WeightedLinearRegression m_Wlr;
+
     // 低解像度デプスマップの比率
     int kCoarseRatio = 4;
    
     // 設定された最大偏差
     int m_MaxDisparity = 32;
 
-    // 表示画像
+    // 画像を表示するウィジェット
     ImageViewGl *m_Color[2], *m_Depth[2];
 
     // 注視点
@@ -61,6 +65,9 @@ private:
     // 低解像度デプスマップ
     cv::Mat m_CoarseDepthMap;
 
+    // 低解像度確度マップ
+    cv::Mat m_CoarseLikelihoodMap;
+
     // 標準解像度デプスマップ
     cv::Mat m_NormalDepthMap, m_NormalDepthMapFiltered;
 
@@ -69,7 +76,7 @@ private:
     static void findDisparity(const std::vector<cv::Mat> &cost_volume, cv::Mat &disparity, double scale = 1.0);
 
     // Winner takes Allで視差を調べてサブピクセル補間を行う
-    static void findDisparitySubPixel(const std::vector<cv::Mat> &cost_volume, cv::Mat &disparity, double scale = 1.0);
+    static void findDisparitySubPixel(const std::vector<cv::Mat> &cost_volume, cv::Mat &disparity, cv::Mat &likelihood, double scale = 1.0);
 
     // ステレオマッチングを行って視差を計算する
     void stereoMatching(void);

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../videothread.h"
+#include "videothread.h"
 #include "undistort.h"
 #include <opencv2/calib3d.hpp>
 

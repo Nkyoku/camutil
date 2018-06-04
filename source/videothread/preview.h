@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../videothread.h"
+#include "videothread.h"
 #include "undistort.h"
 
 QT_FORWARD_DECLARE_CLASS(ImageViewGl);

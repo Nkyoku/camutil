@@ -52,9 +52,14 @@ void VideoThread::doWork(void){
         event_loop.processEvents();
         
 		// フレームを読み込む
+        bool force_fps_limitter = false;
         if (m_VideoInput->readFrame(input_image) == false) {
-            QThread::msleep(TIMEOUT);
-            continue;
+            // 新しいフレームが読み込めない場合は前のフレームを返す
+            if (input_image.empty() == true) {
+                QThread::msleep(TIMEOUT);
+                continue;
+            }
+            force_fps_limitter = true;
         }
 
         // 処理を行う
@@ -67,7 +72,7 @@ void VideoThread::doWork(void){
 
         // シーク可能な映像入力はウェイト無しでreadFrame()が完了するため
         // フレームレートを調整するためにウェイトを挿入する
-        if (use_fps_limitter == true) {
+        if (use_fps_limitter || force_fps_limitter) {
             double elapsed_time = end_time * 0.000001;
             int wait_time = static_cast<int>(round(adjuster_setting - elapsed_time));
             if (0 < wait_time) {

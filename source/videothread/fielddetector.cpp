@@ -3,7 +3,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <QtWidgets/QGridLayout>
-#include <opencv2/flann.hpp>
+#include <sstream>
 
 VideoFieldDetectorThread::VideoFieldDetectorThread(VideoInput *video_input)
     : VideoThread(video_input), m_EnhancementFilter(kScaleFactor, 5)
@@ -101,14 +101,11 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
 
     // 芝の検知を行う
     std::vector<cv::Point2d> grass_rect;
-    cv::Mat &green = m_FieldDetector.detectGrass(lab_small, grass_rect);
-    for (auto &vertex : grass_rect) {
-        vertex *= kScaleFactor;
-    }
+    cv::Mat &green = m_FieldDetector.detectGrass(lab_small, kScaleFactor, &grass_rect);
 
     // 白線の検知を行う
     std::vector<cv::Vec4f> line_segments;
-    cv::Mat &white = m_FieldDetector.detectLines(lab, grass_rect, line_segments);
+    cv::Mat &white = m_FieldDetector.detectLines(lab, &line_segments);
     
 
 
@@ -168,8 +165,11 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     cv::line(white_show, grass_rect[2], grass_rect[3], cv::Scalar(0, 255, 0));
     cv::line(white_show, grass_rect[3], grass_rect[0], cv::Scalar(0, 255, 0));
     for (const auto &segment : line_segments) {
-        cv::line(white_show, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), cv::Scalar(255, 0, 0));
+        cv::line(white_show, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), cv::Scalar(255, 0, 0), 2);
     }
+    
+
+
 
     // 芝の領域を示す矩形を描画する
     cv::line(green_show, grass_rect[0] / kScaleFactor, grass_rect[1] / kScaleFactor, cv::Scalar(0, 255, 0));
@@ -178,6 +178,52 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     cv::line(green_show, grass_rect[3] / kScaleFactor, grass_rect[0] / kScaleFactor, cv::Scalar(0, 255, 0));
 
     
+
+
+    // 消失点を描画する
+    /*cv::Mat vanish;
+    if (3 <= m_FieldDetector.m_LineIntersections.rows) {
+        double min_x, max_x, min_y, max_y;
+        min_x = max_x = m_FieldDetector.m_LineIntersections.at<float>(0, 0);
+        min_y = max_y = m_FieldDetector.m_LineIntersections.at<float>(0, 1);
+        for (int index = 1; index < m_FieldDetector.m_LineIntersections.rows; index++) {
+            double x = m_FieldDetector.m_LineIntersections.at<float>(index, 0);
+            double y = m_FieldDetector.m_LineIntersections.at<float>(index, 1);
+            min_x = std::min(min_x, x);
+            max_x = std::max(max_x, x);
+            min_y = std::min(min_y, y);
+            max_y = std::max(max_y, y);
+        }
+        QSize window_size = m_Field[1]->size();
+        vanish.create(window_size.height(), window_size.width(), CV_8UC3);
+        vanish.setTo(0);
+        int width = vanish.cols, height = vanish.rows;
+        for (int index = 0; index < 4; index++) {
+            int image_x1 = static_cast<int>((grass_rect[index].x - min_x) / (max_x - min_x) * width);
+            int image_y1 = static_cast<int>((grass_rect[index].y - min_y) / (max_y - min_y) * height);
+            int image_x2 = static_cast<int>((grass_rect[(index + 1) % 4].x - min_x) / (max_x - min_x) * width);
+            int image_y2 = static_cast<int>((grass_rect[(index + 1) % 4].y - min_y) / (max_y - min_y) * height);
+            cv::line(vanish, cv::Point(image_x1, image_y1), cv::Point(image_x2, image_y2), cv::Scalar(0, 255, 0));
+        }
+        for(const auto &segment : m_FieldDetector.m_LongLineSegments){
+        }
+        for (int index = 0; index < m_FieldDetector.m_LineIntersections.rows; index++) {
+            double x = m_FieldDetector.m_LineIntersections.at<float>(index, 0);
+            double y = m_FieldDetector.m_LineIntersections.at<float>(index, 1);
+            int image_x = static_cast<int>((x - min_x) / (max_x - min_x) * width);
+            int image_y = static_cast<int>((y - min_y) / (max_y - min_y) * height);
+            cv::circle(vanish, cv::Point(image_x, image_y), 2, cv::Scalar(255, 255, 0));
+        }
+        if (m_FieldDetector.m_VanishingPoints.size() == 3) {
+            for (int index = 0; index < 3; index++) {
+                std::ostringstream text;
+                text << m_FieldDetector.m_VanishingPoints[index].x << ", " << m_FieldDetector.m_VanishingPoints[index].y;
+                cv::putText(vanish, text.str(), cv::Point(8, 16 + 16 * index), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
+            }
+        }
+    }*/
+
+
 
 
     /*for (int i = 0; i < centers.rows; i++) {

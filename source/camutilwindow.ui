@@ -123,9 +123,6 @@
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
-         <property name="frame">
-          <bool>false</bool>
-         </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
@@ -154,9 +151,6 @@
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
-         </property>
-         <property name="frame">
-          <bool>false</bool>
          </property>
          <property name="buttonSymbols">
           <enum>QAbstractSpinBox::NoButtons</enum>

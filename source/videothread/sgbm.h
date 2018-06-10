@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "videothread.h"
-#include "undistort.h"
+#include "algorithm/undistort.h"
 #include <opencv2/calib3d.hpp>
 
 QT_FORWARD_DECLARE_CLASS(ImageViewGl);

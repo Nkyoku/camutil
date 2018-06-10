@@ -5,10 +5,6 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
       <Extensions>qrc;*</Extensions>
@@ -28,9 +24,6 @@
       <Extensions>moc;h;cpp</Extensions>
       <SourceControlFiles>False</SourceControlFiles>
     </Filter>
-    <Filter Include="Header Files\videothread">
-      <UniqueIdentifier>{d8a9c80f-a057-42ff-beda-31cbb7c81e0c}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\videothread">
       <UniqueIdentifier>{38c385da-182b-4d01-947d-b9a1b9a95e3b}</UniqueIdentifier>
     </Filter>
@@ -39,9 +32,6 @@
     </Filter>
     <Filter Include="Source Files\3rdparty">
       <UniqueIdentifier>{c840c368-66fa-4a11-9fcf-c8c6c5a133e7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\algorithm">
-      <UniqueIdentifier>{0c29b0c5-72a4-484e-b0fe-fb28dd4b38a9}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\algorithm">
       <UniqueIdentifier>{ef811f11-51f1-4624-a8ee-93be95cbe6cd}</UniqueIdentifier>
@@ -77,9 +67,6 @@
     <ClCompile Include="source\videothread\calibration.cpp">
       <Filter>Source Files\videothread</Filter>
     </ClCompile>
-    <ClCompile Include="source\videothread\undistort.cpp">
-      <Filter>Source Files\videothread</Filter>
-    </ClCompile>
     <ClCompile Include="source\videothread\sgbm.cpp">
       <Filter>Source Files\videothread</Filter>
     </ClCompile>
@@ -101,40 +88,52 @@
     <ClCompile Include="source\algorithm\field_detector.cpp">
       <Filter>Source Files\algorithm</Filter>
     </ClCompile>
+    <ClCompile Include="source\algorithm\radon_transform.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="source\algorithm\undistort.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="source\algorithm\dual_rgb_stereo_matching.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="source\algorithm\census_based_stereo_matching.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="source\sourcedialog.h">
-      <Filter>Header Files</Filter>
-    </QtMoc>
-    <QtMoc Include="source\camutilwindow.h">
-      <Filter>Header Files</Filter>
-    </QtMoc>
-    <QtMoc Include="source\videoinput.h">
-      <Filter>Header Files</Filter>
-    </QtMoc>
-    <QtMoc Include="source\imageviewgl.h">
-      <Filter>Header Files</Filter>
-    </QtMoc>
-    <QtMoc Include="source\videothread.h">
-      <Filter>Header Files</Filter>
-    </QtMoc>
-    <QtMoc Include="source\videothread\preview.h">
-      <Filter>Header Files\videothread</Filter>
-    </QtMoc>
-    <QtMoc Include="source\tabpage.h">
-      <Filter>Header Files</Filter>
-    </QtMoc>
     <QtMoc Include="source\videothread\calibration.h">
-      <Filter>Header Files\videothread</Filter>
-    </QtMoc>
-    <QtMoc Include="source\videothread\sgbm.h">
-      <Filter>Header Files\videothread</Filter>
-    </QtMoc>
-    <QtMoc Include="source\videothread\stereo.h">
-      <Filter>Header Files\videothread</Filter>
+      <Filter>Source Files\videothread</Filter>
     </QtMoc>
     <QtMoc Include="source\videothread\fielddetector.h">
-      <Filter>Header Files\videothread</Filter>
+      <Filter>Source Files\videothread</Filter>
+    </QtMoc>
+    <QtMoc Include="source\videothread\preview.h">
+      <Filter>Source Files\videothread</Filter>
+    </QtMoc>
+    <QtMoc Include="source\videothread\sgbm.h">
+      <Filter>Source Files\videothread</Filter>
+    </QtMoc>
+    <QtMoc Include="source\videothread\stereo.h">
+      <Filter>Source Files\videothread</Filter>
+    </QtMoc>
+    <QtMoc Include="source\camutilwindow.h">
+      <Filter>Source Files</Filter>
+    </QtMoc>
+    <QtMoc Include="source\imageviewgl.h">
+      <Filter>Source Files</Filter>
+    </QtMoc>
+    <QtMoc Include="source\sourcedialog.h">
+      <Filter>Source Files</Filter>
+    </QtMoc>
+    <QtMoc Include="source\tabpage.h">
+      <Filter>Source Files</Filter>
+    </QtMoc>
+    <QtMoc Include="source\videoinput.h">
+      <Filter>Source Files</Filter>
+    </QtMoc>
+    <QtMoc Include="source\videothread.h">
+      <Filter>Source Files</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -149,20 +148,29 @@
     </QtUic>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="source\qtmat.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="source\videothread\undistort.h">
-      <Filter>Header Files\videothread</Filter>
-    </ClInclude>
-    <ClInclude Include="source\algorithm\weighted_linear_regression.h">
-      <Filter>Header Files\algorithm</Filter>
+    <ClInclude Include="source\algorithm\field_detector.h">
+      <Filter>Source Files\algorithm</Filter>
     </ClInclude>
     <ClInclude Include="source\algorithm\enhancement_filter.h">
-      <Filter>Header Files\algorithm</Filter>
+      <Filter>Source Files\algorithm</Filter>
     </ClInclude>
-    <ClInclude Include="source\algorithm\field_detector.h">
-      <Filter>Header Files\algorithm</Filter>
+    <ClInclude Include="source\algorithm\radon_transform.h">
+      <Filter>Source Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\weighted_linear_regression.h">
+      <Filter>Source Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\qtmat.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\undistort.h">
+      <Filter>Source Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\dual_rgb_stereo_matching.h">
+      <Filter>Source Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\census_based_stereo_matching.h">
+      <Filter>Source Files\algorithm</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

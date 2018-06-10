@@ -1,9 +1,9 @@
 ﻿#pragma once
 
 #include "../videothread.h"
-#include "undistort.h"
-#include <opencv2/calib3d.hpp>
-#include "algorithm/weighted_linear_regression.h"
+#include "algorithm/undistort.h"
+#include "algorithm/census_based_stereo_matching.h"
+#include <QtWidgets/QDoubleSpinBox>
 
 QT_FORWARD_DECLARE_CLASS(ImageViewGl);
 
@@ -32,11 +32,11 @@ private:
     // 歪み補正器
     Undistort m_Undistort;
 
-    // 線形回帰
-    WeightedLinearRegression m_Wlr;
+    // ステレオマッチング
+    CensusBasedStereoMatching m_StereoMatching;
 
     // 低解像度デプスマップの比率
-    int kCoarseRatio = 4;
+    int kCoarseRatio = 8;
    
     // 設定された最大偏差
     int m_MaxDisparity = 32;
@@ -72,18 +72,9 @@ private:
     cv::Mat m_NormalDepthMap, m_NormalDepthMapFiltered;
 
 
-    // Winner takes Allで視差を調べる
-    static void findDisparity(const std::vector<cv::Mat> &cost_volume, cv::Mat &disparity, double scale = 1.0);
-
-    // Winner takes Allで視差を調べてサブピクセル補間を行う
-    static void findDisparitySubPixel(const std::vector<cv::Mat> &cost_volume, cv::Mat &disparity, cv::Mat &likelihood, double scale = 1.0);
-
-    // ステレオマッチングを行って視差を計算する
-    void stereoMatching(void);
-
-    // 5x5のCensus変換を行う
-    static void VideoStereoThread::doCensus5x5Transform(const cv::Mat &src, cv::Mat &dst);
-
     // 注視点を設定する
-    Q_SLOT void watch(int x, int y);
+    Q_SLOT void watch(int x, int y) {
+        m_WatchPointX = x;
+        m_WatchPointY = y;
+    }
 };

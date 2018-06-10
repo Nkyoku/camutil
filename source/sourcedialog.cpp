@@ -9,6 +9,13 @@ SourceDialog::SourceDialog(QWidget *parent) : QDialog(parent) {
     m_ui = new Ui_SourceDialog;
     m_ui->setupUi(this);
 
+    // タブの各ページの背景色を設定する
+    for (int index = 0; index < m_ui->Tab->count(); index++) {
+        QWidget *page = m_ui->Tab->widget(index);
+        page->setBackgroundRole(QPalette::Window);
+        page->setAutoFillBackground(true);
+    }
+
     // UvcResolutionの選択項目が変更されたときにUvcFramerateを書き換える
     connect(m_ui->UvcResolution, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, [&](int index) {
         QString fps = m_ui->UvcFramerate->currentText();

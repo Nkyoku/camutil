@@ -8,7 +8,10 @@ class TabPage : public QWidget{
 
 public:
     // コンストラクタ
-    explicit TabPage(VideoThread *video_thread, QWidget *parent = nullptr) : QWidget(parent), m_VideoThread(video_thread) {}
+    explicit TabPage(VideoThread *video_thread, QWidget *parent = nullptr) : QWidget(parent), m_VideoThread(video_thread) {
+        setBackgroundRole(QPalette::Window);
+        setAutoFillBackground(true);
+    }
 
     // 紐づけられたVideoThreadを取得する
     VideoThread* videoThread(void) {

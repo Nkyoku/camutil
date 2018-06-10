@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "videothread.h"
-#include "undistort.h"
+#include "algorithm/undistort.h"
 #include "algorithm/enhancement_filter.h"
 #include "algorithm/field_detector.h"
 #include <opencv2/imgproc.hpp>

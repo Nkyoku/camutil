@@ -4,6 +4,7 @@
 #include <math.h>
 #include <QtWidgets/QGridLayout>
 #include <sstream>
+#include <QDebug>
 
 VideoFieldDetectorThread::VideoFieldDetectorThread(VideoInput *video_input)
     : VideoThread(video_input), m_EnhancementFilter(kScaleFactor, 5)
@@ -48,23 +49,20 @@ void VideoFieldDetectorThread::initialize(QWidget *parent) {
     QGridLayout *grid_layout = new QGridLayout;
     parent->setLayout(grid_layout);
     for (int side = 0; side < 2; side++) {
-        m_Color[side] = new ImageViewGl;
-        m_Color[side]->convertBgrToRgb();
-        grid_layout->addWidget(m_Color[side], 0, side);
-        connect(this, &VideoThread::update, m_Color[side], QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
+        //m_Color[side] = new ImageViewGl;
+        //m_Color[side]->convertBgrToRgb();
+        //grid_layout->addWidget(m_Color[side], 0, side);
+        //connect(this, &VideoThread::update, m_Color[side], QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
         
     }
-    for (int side = 0; side < 2; side++) {
+    for (int side = 0; side < 1; side++) {
         m_Field[side] = new ImageViewGl;
-        //m_Field[side]->convertBgrToRgb();
         grid_layout->addWidget(m_Field[side], 1, side);
         connect(this, &VideoThread::update, m_Field[side], QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
     }
 
-    m_Color[1]->useMouse();
-    connect(m_Color[1], &ImageViewGl::mouseMoved, this, &VideoFieldDetectorThread::showColor, Qt::QueuedConnection);
-
-    //m_Field[0]->setMirror();
+    //m_Color[1]->useMouse();
+    //connect(m_Color[1], &ImageViewGl::mouseMoved, this, &VideoFieldDetectorThread::showColor, Qt::QueuedConnection);
 }
 
 void VideoFieldDetectorThread::uninitialize(void) {
@@ -164,10 +162,25 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     cv::line(white_show, grass_rect[1], grass_rect[2], cv::Scalar(0, 255, 0));
     cv::line(white_show, grass_rect[2], grass_rect[3], cv::Scalar(0, 255, 0));
     cv::line(white_show, grass_rect[3], grass_rect[0], cv::Scalar(0, 255, 0));
-    for (const auto &segment : line_segments) {
-        cv::line(white_show, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), cv::Scalar(255, 0, 0), 2);
+    for (int index = 0; index < static_cast<int>(m_FieldDetector.m_LongLineSegments.size()); index++) {
+        const cv::Vec4f &segment = m_FieldDetector.m_LongLineSegments[index];
+        cv::Point a(segment[0], segment[1]);
+        cv::Point b(segment[2], segment[3]);
+        bool edge = m_FieldDetector.m_EdgePolarity[index];
+        if (b.y < a.y) {
+            std::swap(a.x, b.x);
+            std::swap(a.y, b.y);
+            edge = !edge;
+        }
+        //cv::line(white_show, a, b, edge ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 255, 255), 2);
+        cv::line(white_show, a, b, cv::Scalar(255, 0, 0), 2);
     }
-    
+    for (const cv::Vec6f &white_line : m_FieldDetector.m_WhiteLines) {
+        cv::Point a(white_line[0], white_line[1]);
+        cv::Point b(white_line[2], white_line[3]);
+        int thickness = std::max(static_cast<int>(round(white_line[4])), 1);
+        cv::line(white_show, a, b, cv::Scalar(0, 255, 255), thickness);
+    }
 
 
 
@@ -178,6 +191,13 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     cv::line(green_show, grass_rect[3] / kScaleFactor, grass_rect[0] / kScaleFactor, cv::Scalar(0, 255, 0));
 
     
+
+
+    for (int index = 0; index < m_FieldDetector.m_LineIntersections.rows; index++) {
+        double x = m_FieldDetector.m_LineIntersections.at<float>(index, 0);
+        double y = m_FieldDetector.m_LineIntersections.at<float>(index, 1);
+        cv::circle(white_show, cv::Point(x, y), 4, cv::Scalar(255, 255, 0), 2);
+    }
 
 
     // 消失点を描画する
@@ -241,12 +261,12 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     cv::adaptiveThreshold(gray[0], binary[0], 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 5, threshold);
     cv::adaptiveThreshold(gray[1], binary[1], 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 5, threshold);*/
 
-    m_Color[0]->setImage(m_ColorImage[0]);
-    m_Color[1]->setImage(medianed/*m_EnhancedColorImage[0]*/);
+    //m_Color[0]->setImage(m_ColorImage[0]);
+    //m_Color[1]->setImage(medianed/*m_EnhancedColorImage[0]*/);
     //m_Field[0]->setImage(m_WhiteLineImage[0]);
     //m_Field[0]->setImage(histogram_show);
-    m_Field[0]->setImage(green_show);
-    m_Field[1]->setImage(white_show);
+    //m_Field[0]->setImage(green_show);
+    m_Field[0]->setImage(white_show);
 }
 
 void VideoFieldDetectorThread::showColor(int x, int y) {

@@ -51,13 +51,16 @@ public:
     static constexpr double kGrassMargin = 1.2;
 
     // 検出する白線の最低長(芝の領域の幅・高さに対する割合)
-    static constexpr double kLineLengthThreshold = 1.0 / 16.0;
+    static constexpr double kLineLengthThreshold = 1.0 / 32.0;
 
     // 検出する白線の本数の最大数
-    static const int kMaximumLineCount = 16;
+    static constexpr int kMaximumLineCount = 32;
 
-    // 2本の直線が平行だとみなすcosθ
+    // 2本の直線が平行だと見なすcosθ
     static constexpr double kParallelAngle = 0.995;
+
+    // 2本の線分が近いと見なす距離
+    static constexpr double kNeighborSegmentThreshold = 20.0;
 
     // 線分検知器
     cv::Ptr<cv::LineSegmentDetector> m_Lsd;
@@ -75,11 +78,20 @@ public:
     cv::Mat m_BinaryLines;
 
     // 白線の線分リスト
-    std::vector<cv::Vec4f> m_LineSegments, m_LongLineSegments;
+    std::vector<cv::Vec4f> m_LineSegments, m_CutLineSegments, m_LongLineSegments;
+
+    // 線分のエッジ極性
+    std::vector<bool> m_EdgePolarity;
 
     // 線分の延長線の交点リスト
     cv::Mat m_LineIntersections;
 
+    // 合成された線分のリスト
+    // [0], [1] : 始点
+    // [2], [3] : 終点
+    // [4]      : 太さ
+    // [5]      : 成す角(cosθ)
+    std::vector<cv::Vec6f> m_WhiteLines;
 
 
 

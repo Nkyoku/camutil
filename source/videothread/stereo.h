@@ -3,6 +3,7 @@
 #include "../videothread.h"
 #include "algorithm/undistort.h"
 #include "algorithm/census_based_stereo_matching.h"
+#include "algorithm/area_interpolation.h"
 #include <QtWidgets/QDoubleSpinBox>
 
 QT_FORWARD_DECLARE_CLASS(ImageViewGl);
@@ -29,48 +30,50 @@ protected:
     virtual void processImage(const cv::Mat &input_image) override;
 
 private:
+    // 縮小比率1
+    static constexpr int kHScale1 = 1, kVScale1 = 4;
+
+    // 縮小比率2
+    static constexpr int kHScale2 = 4, kVScale2 = 8;
+
+    // 縮小比率3
+    static constexpr int kHScale3 = 16, kVScale3 = 16;
+    
+    // 最大偏差
+    static constexpr int kMaxDisparity = 8;
+
     // 歪み補正器
     Undistort m_Undistort;
 
     // ステレオマッチング
-    CensusBasedStereoMatching m_StereoMatching;
-
-    // 低解像度デプスマップの比率
-    int kCoarseRatio = 8;
-   
-    // 設定された最大偏差
-    int m_MaxDisparity = 32;
+    CensusBasedStereoMatching m_StereoMatching[3];
+    
+    // 補間
+    AreaInterpolation m_Interpolation;
 
     // 画像を表示するウィジェット
-    ImageViewGl *m_Color[2], *m_Depth[2];
+    ImageViewGl *m_Color[2], *m_Depth, *m_Disparity[3], *m_Likelihood[3];
 
     // 注視点
     int m_WatchPointX = -1, m_WatchPointY = -1;
 
-    // 標準解像度カラー画像
-    cv::Mat m_ColorImage[2];
+    // オリジナル画像
+    cv::Mat m_OriginalImage[2];
 
-    // 低解像度カラー画像
-    cv::Mat m_CoarseColorImage[2];
+    // カラー画像
+    cv::Mat m_ColorImage[6];
 
-    // 低解像度モノクロ画像
-    cv::Mat m_CoarseGrayImage[2];
+    // 偏差マップ
+    cv::Mat m_DisparityMap[3];
 
-    // 低解像度Census画像
-    cv::Mat m_CoarseCensusImage[2];
+    // 拡大された偏差マップ
+    cv::Mat m_MagnifiedDisparityMap[2];
 
-    // コストボリューム
-    std::vector<cv::Mat> m_CostVolume;
+    // 尤度マップ
+    cv::Mat m_LikelihoodMap[3];
 
-    // 低解像度デプスマップ
-    cv::Mat m_CoarseDepthMap;
-
-    // 低解像度確度マップ
-    cv::Mat m_CoarseLikelihoodMap;
-
-    // 標準解像度デプスマップ
-    cv::Mat m_NormalDepthMap, m_NormalDepthMapFiltered;
-
+    // デプスマップ
+    cv::Mat m_DepthMap;
 
     // 注視点を設定する
     Q_SLOT void watch(int x, int y) {

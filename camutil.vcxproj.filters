@@ -100,6 +100,12 @@
     <ClCompile Include="source\algorithm\census_based_stereo_matching.cpp">
       <Filter>Source Files\algorithm</Filter>
     </ClCompile>
+    <ClCompile Include="source\algorithm\area_interpolation.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="source\algorithm\line_segment.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="source\videothread\calibration.h">
@@ -170,6 +176,12 @@
       <Filter>Source Files\algorithm</Filter>
     </ClInclude>
     <ClInclude Include="source\algorithm\census_based_stereo_matching.h">
+      <Filter>Source Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\area_interpolation.h">
+      <Filter>Source Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\line_segment.h">
       <Filter>Source Files\algorithm</Filter>
     </ClInclude>
   </ItemGroup>

@@ -15,11 +15,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\3rdparty\fastguidedfilter.cpp" />
+    <ClCompile Include="source\algorithm\area_interpolation.cpp" />
     <ClCompile Include="source\algorithm\census_based_stereo_matching.cpp" />
     <ClCompile Include="source\algorithm\enhancement_filter.cpp" />
     <ClCompile Include="source\algorithm\field_detector.cpp" />
     <ClCompile Include="source\algorithm\radon_transform.cpp" />
     <ClCompile Include="source\algorithm\dual_rgb_stereo_matching.cpp" />
+    <ClCompile Include="source\algorithm\line_segment.cpp" />
     <ClCompile Include="source\algorithm\undistort.cpp" />
     <ClCompile Include="source\algorithm\weighted_linear_regression.cpp" />
     <ClCompile Include="source\camutilwindow.cpp" />
@@ -60,11 +62,13 @@
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="source\algorithm\area_interpolation.h" />
     <ClInclude Include="source\algorithm\census_based_stereo_matching.h" />
     <ClInclude Include="source\algorithm\enhancement_filter.h" />
     <ClInclude Include="source\algorithm\field_detector.h" />
     <ClInclude Include="source\algorithm\radon_transform.h" />
     <ClInclude Include="source\algorithm\dual_rgb_stereo_matching.h" />
+    <ClInclude Include="source\algorithm\line_segment.h" />
     <ClInclude Include="source\algorithm\undistort.h" />
     <ClInclude Include="source\algorithm\weighted_linear_regression.h" />
     <ClInclude Include="source\qtmat.h" />

@@ -1,4 +1,5 @@
 ﻿#include "field_detector.h"
+#include "line_segment.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -93,11 +94,14 @@ cv::Mat& FieldDetector::detectGrass(const cv::Mat &lab_image, double scale, std:
 }
 
 cv::Mat& FieldDetector::detectLines(const cv::Mat &lab_image, std::vector<cv::Vec4f> *line_segments) {
+    int height = lab_image.rows;
+    int width = lab_image.cols;
+    
     // 芝の領域に含まれる白色の成分のみを抽出する
     // 水平スキャンラインと芝の領域の交点を計算し、始点・終点をrangesに格納する
-    std::vector<cv::Range> ranges(lab_image.rows);
-    for (int y = 0; y < lab_image.rows; y++) {
-        int start_x = lab_image.cols, end_x = 0;
+    std::vector<cv::Range> ranges(height);
+    for (int y = 0; y < height; y++) {
+        int start_x = width, end_x = 0;
         for (int edge = 0; edge < 4; edge++) {
             double x1 = m_EnlargedGrassContours[edge].x;
             double y1 = m_EnlargedGrassContours[edge].y;
@@ -121,7 +125,7 @@ cv::Mat& FieldDetector::detectLines(const cv::Mat &lab_image, std::vector<cv::Ve
     }
     
     // 白線の色を検知して2値化する
-    m_BinaryLines.create(lab_image.rows, lab_image.cols, CV_8UC1);
+    m_BinaryLines.create(height, width, CV_8UC1);
     lab_image.forEach<cv::Vec3b>([&](const cv::Vec3b &value, const int pos[2]) {
         const cv::Range &range = ranges[pos[0]];
         bool inside_grass = (range.start <= pos[1]) && (pos[1] < range.end);
@@ -131,16 +135,162 @@ cv::Mat& FieldDetector::detectLines(const cv::Mat &lab_image, std::vector<cv::Ve
     // 線分を抽出し、長い線分を選ぶ
     m_Lsd->detect(m_BinaryLines, m_LineSegments);
     double threshold2 = pow(std::min(m_GrassContourWidth, m_GrassContourHeight) * kLineLengthThreshold, 2);
-    selectLongSegments(m_LineSegments, threshold2, m_LongLineSegments);
-    selectNthLongerSegments(m_LongLineSegments, kMaximumLineCount);
-    m_LongLineSegments.resize(kMaximumLineCount);
     
+    selectLongSegments(m_LineSegments, threshold2, m_CutLineSegments);
 
 
-    /*if (3 <= m_LongLineSegments.size()) {
+    //reduceSegments(m_CutLineSegments, m_LongLineSegments);
+    m_LongLineSegments = m_CutLineSegments;
+
+    if (kMaximumLineCount < static_cast<int>(m_LongLineSegments.size())) {
+        selectNthLongerSegments(m_LongLineSegments, kMaximumLineCount);
+        m_LongLineSegments.resize(kMaximumLineCount);
+    }
+
+
+    // 線分の進行方向に対して右側に白があればフラグを立てる
+    m_EdgePolarity.resize(m_LongLineSegments.size());
+    for (int index = 0; index < static_cast<int>(m_LongLineSegments.size()); index++) {
+        const cv::Vec4f &segment = m_LongLineSegments[index];
+        double center_x = (segment[0] + segment[2]) * 0.5;
+        double center_y = (segment[1] + segment[3]) * 0.5;
+        double rlength = 1.0 / sqrt(pow(segment[0] - segment[2], 2) + pow(segment[1] - segment[3], 2));
+        double normal_x = -(segment[3] - segment[1]) * rlength;
+        double normal_y = (segment[2] - segment[0]) * rlength;
+        bool result = false;
+        for (int px = 1; px < 10; px++) {
+            int ax = static_cast<int>(round(center_x + normal_x * px));
+            int ay = static_cast<int>(round(center_y + normal_y * px));
+            int bx = static_cast<int>(round(center_x - normal_x * px));
+            int by = static_cast<int>(round(center_y - normal_y * px));
+            if ((0 <= ax) && (ax < width) && (0 <= ay) && (ay < height) && (0 <= bx) && (bx < width) && (0 <= by) && (by < height)) {
+                uint8_t color_a = m_BinaryLines.at<uint8_t>(ay, ax);
+                uint8_t color_b = m_BinaryLines.at<uint8_t>(by, bx);
+                if (color_a != color_b) {
+                    result = (color_b < color_a);
+                    break;
+                }
+            }
+        }
+        m_EdgePolarity[index] = result;
+    }
+
+
+
+
+    m_WhiteLines.clear();
+    for (int i = 0; i < static_cast<int>(m_LongLineSegments.size()); i++) {
+        // 線分A
+        cv::Point2d a1(m_LongLineSegments[i][0], m_LongLineSegments[i][1]);
+        cv::Point2d a2(m_LongLineSegments[i][2], m_LongLineSegments[i][3]);
+        cv::Point2d vector_a = a2 - a1;
+        double length_a = sqrt(pow(vector_a.x, 2) + pow(vector_a.y, 2));
+        vector_a *= 1.0 / length_a;
+        bool edge_a = m_EdgePolarity[i];
+        for (int j = i + 1; j < static_cast<int>(m_LongLineSegments.size()); j++) {
+            // 線分B
+            cv::Point2d b1(m_LongLineSegments[j][0], m_LongLineSegments[j][1]);
+            cv::Point2d b2(m_LongLineSegments[j][2], m_LongLineSegments[j][3]);
+            cv::Point2d vector_b = b2 - b1;
+            double length_b = sqrt(pow(vector_b.x, 2) + pow(vector_b.y, 2));
+            vector_b *= 1.0 / length_b;
+            bool edge_b = m_EdgePolarity[j];
+
+            // 線分A,Bの成す角がほぼ平行であるか調べる
+            double cos_angle = vector_a.dot(vector_b);
+            if (abs(cos_angle) < kParallelAngle) {
+                continue;
+            }
+            if (cos_angle < 0) {
+                std::swap(b1, b2);
+                vector_b *= -1;
+                edge_b = !edge_b;
+            }
+
+            // エッジ極性が不正なものを除外する
+            if (edge_a == edge_b) {
+                continue;
+            }
+            if (isPointOnLeftSideOfLine(b1, a1, a2) == true) {
+                // 画像空間中ではB1は線分Aの向かって右にある
+                if (edge_a == false) {
+                    // 線分Aの右が白ではないので不正
+                    continue;
+                }
+            } else {
+                if (edge_a == true) {
+                    continue;
+                }
+            }
+
+            // 線分同士が近いか調べる
+            if (kNeighborSegmentThreshold < distanceBetweenSegmentsSimple(a1, a2, b1, b2)) {
+                continue;
+            }
+            if (kNeighborSegmentThreshold < distanceBetweenSegments(a1, a2, b1, b2)) {
+                continue;
+            }
+
+            /*// 線分Bの各点B1,B2から線分Aに降ろした垂線との交点C1,C2を計算する
+            double length_a1_c1 = vector_a.dot(b1 - a1);
+            double length_a1_c2 = vector_a.dot(b2 - a1);
+            cv::Point2d c1(a1 + length_a1_c1 * vector_a);
+            cv::Point2d c2(a1 + length_a1_c2 * vector_a);
+
+            // 線分AとBの間にある線分Dを求める
+            cv::Point2d d1((b1 + c1) * 0.5);
+            cv::Point2d d2((b2 + c2) * 0.5);
+            cv::Point2d vector_d = d2 - d1;
+            double length_d = sqrt(pow(vector_d.x, 2) + pow(vector_d.y, 2));
+            vector_d *= 1.0 / length_d;
+
+            // 線分Aの各点A1,A2から線分Dに降ろした垂線との交点E1,E2を計算する
+            double length_d1_e1_clamped = std::min(std::max(vector_a.dot(a1 - d1), 0.0), length_d);
+            double length_d1_e2_clamped = std::min(std::max(vector_a.dot(a2 - d1), 0.0), length_d);
+            if (length_d1_e1_clamped == length_d1_e2_clamped) {
+                continue;
+            }
+            cv::Point2d e1(d1 + length_d1_e1_clamped * vector_d);
+            cv::Point2d e2(d1 + length_d1_e2_clamped * vector_d);
+            
+            double width = distance(a1 + (length_a1_c1 + length_a1_c2) * 0.5 * vector_a, (b1 + b2) * 0.5);*/
+            
+            // 線分Cは線分A,Bの平均ベクトル
+            cv::Point2d c1((a1 + b1) * 0.5);
+            cv::Point2d c2((a2 + b2) * 0.5);
+            cv::Point2d c3((c1 + c2) * 0.5);
+
+            // 線分Cの中心点が白色か調べる
+            cv::Point c3_int(static_cast<int>(round(c3.x)), static_cast<int>(round(c3.y)));
+            if ((c3_int.x < 0) && (width <= c3_int.x) && (c3_int.y < 0) && (height <= c3_int.y)) {
+                continue;
+            }
+            if (m_BinaryLines.at<uint8_t>(c3_int.y, c3_int.x) == 0) {
+                continue;
+            }
+
+            // 線分Cの中心C3から線分Aに降ろした垂線の長さの2倍が線分Cの太さとなる
+            double thickness = 2.0 * abs(c3.cross(a2 - a1) + a2.cross(a1)) / length_a;
+
+            cv::Vec6f result;
+            result[0] = static_cast<float>(c1.x);
+            result[1] = static_cast<float>(c1.y);
+            result[2] = static_cast<float>(c2.x);
+            result[3] = static_cast<float>(c2.y);
+            result[4] = static_cast<float>(thickness);
+            result[5] = static_cast<float>(abs(cos_angle));
+            m_WhiteLines.push_back(result);
+        }
+    }
+
+
+
+
+
+    if (3 <= m_LongLineSegments.size()) {
         // 線分を無限に延長したときの交点をすべて求める
         // 平行度の高い線分同士の交点は除外する
-        m_LineIntersections.create(m_LongLineSegments.size() * (m_LongLineSegments.size() - 1) / 2, 2, CV_32F);
+        /*m_LineIntersections.create(m_LongLineSegments.size() * (m_LongLineSegments.size() - 1) / 2, 2, CV_32F);
         int number_of_points = 0;
         for (int segment1_index = 0; segment1_index < static_cast<int>(m_LongLineSegments.size()); segment1_index++) {
             const cv::Vec4f &segment1 = m_LongLineSegments[segment1_index];
@@ -159,8 +309,33 @@ cv::Mat& FieldDetector::detectLines(const cv::Mat &lab_image, std::vector<cv::Ve
                 }
             }
         }
+        m_LineIntersections.resize(number_of_points);*/
 
-        // 交点を3つのクラスタに分類する
+        // 線分の交点のうち、芝の領域内にあるものを抽出する
+        m_LineIntersections.create(m_LongLineSegments.size() * (m_LongLineSegments.size() - 1) / 2, 2, CV_32F);
+        int number_of_points = 0;
+        for (int segment1_index = 0; segment1_index < static_cast<int>(m_LongLineSegments.size()); segment1_index++) {
+            const cv::Vec4f &segment1 = m_LongLineSegments[segment1_index];
+            cv::Point2d a1(segment1[0], segment1[1]), a2(segment1[2], segment1[3]);
+            for (int segment2_index = segment1_index + 1; segment2_index < static_cast<int>(m_LongLineSegments.size()); segment2_index++) {
+                const cv::Vec4f &segment2 = m_LongLineSegments[segment2_index];
+                cv::Point2d b1(segment2[0], segment2[1]), b2(segment2[2], segment2[3]);
+                bool inside1, inside2;
+                cv::Point2d intersection = segmentIntersection(a1, a2, b1, b2, &inside1, &inside2);
+                if ((inside1 || inside2) && (0 <= intersection.y) && (intersection.y < (height - 1))) {
+                    int x = static_cast<int>(round(intersection.x));
+                    int y = static_cast<int>(round(intersection.y));
+                    if ((ranges[y].start <= x) && (x < ranges[y].end)) {
+                        m_LineIntersections.at<float>(number_of_points, 0) = static_cast<float>(intersection.x);
+                        m_LineIntersections.at<float>(number_of_points, 1) = static_cast<float>(intersection.y);
+                        number_of_points++;
+                    }
+                }
+            }
+        }
+        m_LineIntersections.resize(number_of_points);
+
+        /*// 交点を3つのクラスタに分類する
         m_LineIntersections.resize(number_of_points);
         //cv::Mat intersections(m_LineIntersections, cv::Rect(0, 0, number_of_points, 2));
         cv::Mat clusters(number_of_points, 1, CV_32SC1);
@@ -171,18 +346,15 @@ cv::Mat& FieldDetector::detectLines(const cv::Mat &lab_image, std::vector<cv::Ve
         for (int index = 0; index < 3; index++) {
             m_VanishingPoints[index].x = centers.at<float>(index, 0);
             m_VanishingPoints[index].y = centers.at<float>(index, 1);
-        }
+        }*/
 
 
 
-    }*/
+    }
 
     
 
 
-
-
-    // https://www.slideshare.net/hasegawamakoto/ss-56190228
 
 
 

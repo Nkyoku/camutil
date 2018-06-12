@@ -15,7 +15,7 @@ void CensusBasedStereoMatching::setMaximumDisparity(int max_disparity) {
     m_CostVolume.resize(m_MaxDisparity);
 }
 
-bool CensusBasedStereoMatching::compute(const cv::Mat &left_image, const cv::Mat &right_image, cv::Mat &disparity_map) {
+bool CensusBasedStereoMatching::compute(const cv::Mat &left_image, const cv::Mat &right_image, cv::Mat &disparity_map, cv::Mat &likelihood_map) {
     if ((left_image.cols != right_image.cols) || (left_image.rows != right_image.rows) || (left_image.cols <= m_MaxDisparity)) {
         return false;
     }
@@ -38,7 +38,7 @@ bool CensusBasedStereoMatching::compute(const cv::Mat &left_image, const cv::Mat
     }
 
     // 偏差マップを計算する
-    calculateDisparity(m_CostVolume, m_MaxDisparity, disparity_map);
+    calculateDisparity(m_CostVolume, m_MaxDisparity, disparity_map, likelihood_map);
 
     return true;
 }
@@ -59,7 +59,7 @@ void CensusBasedStereoMatching::calculateCostImage(const cv::Mat &left_image, co
     FastGuidedFilter filter(guide, kGifRadius, kGifEps, 1);
 
     // コストボリュームを生成する
-    cv::Mat cost(height, width, CV_32FC1);
+    cv::Mat cost(height, width, CV_32F);
     for (int y = 0; y < height; y++) {
         float *cost_ptr = cost.ptr<float>(y);
         int x = 0;
@@ -83,25 +83,25 @@ void CensusBasedStereoMatching::calculateCostImage(const cv::Mat &left_image, co
     cost_image = filter.filter(cost);
 }
 
-void CensusBasedStereoMatching::calculateDisparity(const std::vector<cv::Mat> &cost_volume, int max_disparity, cv::Mat &disparity_map) {
+void CensusBasedStereoMatching::calculateDisparity(const std::vector<cv::Mat> &cost_volume, int max_disparity, cv::Mat &disparity_map, cv::Mat &likelihood_map) {
     int width = cost_volume[0].cols;
     int height = cost_volume[0].rows;
     disparity_map.create(height, width, CV_32F);
-    //likelihood_map.create(height, width, CV_32F);
+    likelihood_map.create(height, width, CV_32F);
     std::vector<double> cost_list(max_disparity);
     for (int y = 0; y < height; y++) {
         float *disparity_map_ptr = disparity_map.ptr<float>(y);
-        //float *likelihood_map_ptr = likelihood_map.ptr<float>(y);
+        float *likelihood_map_ptr = likelihood_map.ptr<float>(y);
         for (int x = 0; x < width; x++) {
             const int min_d = 0;
             const int max_d = std::min(x + 1, max_disparity);
             int min_cost_d = -1;
             double min_cost = std::numeric_limits<double>::max();
-            //double mean_cost = 0.0;
+            double mean_cost = 0.0;
             for (int d = min_d; d < max_d; d++) {
                 double cost = cost_volume[d].at<float>(y, x);
                 cost_list[d] = cost;
-                //mean_cost += cost;
+                mean_cost += cost;
                 if (cost < min_cost) {
                     min_cost_d = d;
                     min_cost = cost;
@@ -129,8 +129,8 @@ void CensusBasedStereoMatching::calculateDisparity(const std::vector<cv::Mat> &c
                 subpixel_disp += 0.5 * (prev_cost - next_cost) / (prev_cost - 2 * min_cost + next_cost);
             }
             disparity_map_ptr[x] = static_cast<float>(std::max(std::min(subpixel_disp, 255.0), 0.0));
-            //mean_cost /= max_d - min_d;
-            //likelihood_map_ptr[x] = static_cast<float>((mean_cost - min_cost) / mean_cost);
+            mean_cost /= max_d - min_d;
+            likelihood_map_ptr[x] = static_cast<float>((mean_cost - min_cost) / mean_cost);
         }
     }
 }

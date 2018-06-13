@@ -50,17 +50,23 @@ public:
     // 芝の領域のマージン
     static constexpr double kGrassMargin = 1.2;
 
-    // 検出する白線の最低長(芝の領域の幅・高さに対する割合)
+    // 検出する白線の最低長(入力画像サイズに対する割合)
     static constexpr double kLineLengthThreshold = 1.0 / 32.0;
 
     // 検出する白線の本数の最大数
     static constexpr int kMaximumLineCount = 32;
 
     // 2本の直線が平行だと見なすcosθ
-    static constexpr double kParallelAngle = 0.995;
+    static constexpr double kParallelAngle = 255.0 / 256.0;
 
-    // 2本の線分が近いと見なす距離
-    static constexpr double kNeighborSegmentThreshold = 20.0;
+    // 2本の線分が近いと見なす距離(入力画像サイズに対する割合)
+    static constexpr double kNeighborSegmentThreshold = 1.0 / 64.0;
+
+    // 2本の線分がもともと同一のものだと見なす距離(入力画像サイズに対する割合)
+    static constexpr double kSameSegmentThreshold = 1.0 / 256.0;
+
+    // フィールドの白線テンプレート
+    static const std::vector<cv::Vec4f> kFieldTemplate;
 
     // 線分検知器
     cv::Ptr<cv::LineSegmentDetector> m_Lsd;
@@ -115,5 +121,15 @@ public:
     // 処理はline_segmentsに対してin-placeで行われ、抽出された有効な線分の本数を返す
     static void selectNthLongerSegments(std::vector<cv::Vec4f> &line_segments, int max_count);
 
+    // 線分のエッジ極性を調べる
+    // 線分の向かって右側に白色があればtrueが格納される
+    static void edgePolarityCheck(const std::vector<cv::Vec4f> &line_segments, const cv::Mat &binary_image, std::vector<bool> &polarities);
+
+    // 平行な線分を太さを持つ線分に合成する
+    static void combineParallelSegments(const std::vector<cv::Vec4f> &input_segments, const std::vector<bool> &edge_polarities, const cv::Mat &binary_image, double threshold, std::vector<cv::Vec6f> &output_segments);
+
+    // 断絶した線分を補間する
+    // input_segmentsとoutput_segmentsが同じでも動作する
+    static void connectGap(const std::vector<cv::Vec6f> &input_segments, double threshold, std::vector<cv::Vec6f> &output_segments);
 
 };

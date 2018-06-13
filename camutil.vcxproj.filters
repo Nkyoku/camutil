@@ -103,7 +103,7 @@
     <ClCompile Include="source\algorithm\area_interpolation.cpp">
       <Filter>Source Files\algorithm</Filter>
     </ClCompile>
-    <ClCompile Include="source\algorithm\line_segment.cpp">
+    <ClCompile Include="source\algorithm\geometry_2d.cpp">
       <Filter>Source Files\algorithm</Filter>
     </ClCompile>
   </ItemGroup>
@@ -181,7 +181,10 @@
     <ClInclude Include="source\algorithm\area_interpolation.h">
       <Filter>Source Files\algorithm</Filter>
     </ClInclude>
-    <ClInclude Include="source\algorithm\line_segment.h">
+    <ClInclude Include="source\algorithm\geometry_2d.h">
+      <Filter>Source Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\geometry_2d_inl.h">
       <Filter>Source Files\algorithm</Filter>
     </ClInclude>
   </ItemGroup>

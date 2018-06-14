@@ -43,14 +43,8 @@ private:
     // フィールド検知器
     FieldDetector m_FieldDetector;
 
-    // 線分検知器
-    //cv::Ptr<cv::LineSegmentDetector> m_Lsd;
-
     // 画像を表示するウィジェット
     ImageViewGl *m_Color[2], *m_Field[2];
-
-    // 閾値入力用スピンボックス
-    QDoubleSpinBox *m_ThresholdInput, *m_Threshold2Input, *m_Threshold3Input;
 
     // 色情報を表示したい座標
     int m_WatchPointX = -1, m_WatchPointY = -1;

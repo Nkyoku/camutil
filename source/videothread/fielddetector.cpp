@@ -9,7 +9,7 @@
 VideoFieldDetectorThread::VideoFieldDetectorThread(VideoInput *video_input)
     : VideoThread(video_input), m_EnhancementFilter(kScaleFactor, 5)
 {
-    //m_Lsd = cv::createLineSegmentDetector();
+    
 }
 
 VideoFieldDetectorThread::~VideoFieldDetectorThread(){
@@ -17,23 +17,6 @@ VideoFieldDetectorThread::~VideoFieldDetectorThread(){
 }
 
 QString VideoFieldDetectorThread::initializeOnce(QWidget *parent) {
-    QGridLayout *layout = new QGridLayout;
-    parent->setLayout(layout);
-    m_ThresholdInput = new QDoubleSpinBox;
-    m_ThresholdInput->setMinimum(-180.0);
-    m_ThresholdInput->setMaximum(180.0);
-    m_ThresholdInput->setValue(120.0);
-    layout->addWidget(m_ThresholdInput);
-    m_Threshold2Input = new QDoubleSpinBox;
-    m_Threshold2Input->setMinimum(-180.0);
-    m_Threshold2Input->setMaximum(180.0);
-    m_Threshold2Input->setValue(-150.0);
-    layout->addWidget(m_Threshold2Input);
-    m_Threshold3Input = new QDoubleSpinBox;
-    m_Threshold3Input->setMinimum(0.0);
-    m_Threshold3Input->setMaximum(180.0);
-    m_Threshold3Input->setValue(10.0);
-    layout->addWidget(m_Threshold3Input);
     return tr("FieldDetector");
 }
 
@@ -102,8 +85,8 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     cv::Mat &green = m_FieldDetector.detectGrass(lab_small, kScaleFactor, &grass_rect);
 
     // 白線の検知を行う
-    std::vector<cv::Vec4f> line_segments;
-    cv::Mat &white = m_FieldDetector.detectLines(lab, &line_segments);
+    std::vector<cv::Vec4f> line_segments, edge_line_segments;
+    cv::Mat &white = m_FieldDetector.detectLines(lab, line_segments, &edge_line_segments);
     
 
 
@@ -162,26 +145,16 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     cv::line(white_show, grass_rect[1], grass_rect[2], cv::Scalar(0, 255, 0));
     cv::line(white_show, grass_rect[2], grass_rect[3], cv::Scalar(0, 255, 0));
     cv::line(white_show, grass_rect[3], grass_rect[0], cv::Scalar(0, 255, 0));
-    for (int index = 0; index < static_cast<int>(m_FieldDetector.m_LongLineSegments.size()); index++) {
-        const cv::Vec4f &segment = m_FieldDetector.m_LongLineSegments[index];
+    for (const cv::Vec4f &segment : edge_line_segments) {
         cv::Point a(segment[0], segment[1]);
         cv::Point b(segment[2], segment[3]);
-        bool edge = m_FieldDetector.m_EdgePolarity[index];
-        if (b.y < a.y) {
-            std::swap(a.x, b.x);
-            std::swap(a.y, b.y);
-            edge = !edge;
-        }
-        //cv::line(white_show, a, b, edge ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 255, 255), 2);
-        cv::line(white_show, a, b, cv::Scalar(255, 0, 0), 2);
+        cv::line(white_show, a, b, cv::Scalar(0, 128, 255), 2);
     }
-    for (const cv::Vec6f &white_line : m_FieldDetector.m_WhiteLines) {
-        cv::Point a(white_line[0], white_line[1]);
-        cv::Point b(white_line[2], white_line[3]);
-        int thickness = std::max(static_cast<int>(round(white_line[4])), 1);
-        cv::line(white_show, a, b, cv::Scalar(0, 255, 255), thickness);
+    for (const cv::Vec4f &segment : line_segments) {
+        cv::Point a(segment[0], segment[1]);
+        cv::Point b(segment[2], segment[3]);
+        cv::line(white_show, a, b, cv::Scalar(255, 0, 0), 4);
     }
-
 
 
     // 芝の領域を示す矩形を描画する
@@ -193,11 +166,11 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     
 
 
-    for (int index = 0; index < m_FieldDetector.m_LineIntersections.rows; index++) {
-        double x = m_FieldDetector.m_LineIntersections.at<float>(index, 0);
-        double y = m_FieldDetector.m_LineIntersections.at<float>(index, 1);
-        cv::circle(white_show, cv::Point(x, y), 4, cv::Scalar(255, 255, 0), 2);
-    }
+    /*for (const auto &intersection : m_FieldDetector.m_Intersections) {
+        double x = intersection.point.x;
+        double y = intersection.point.y;
+        cv::circle(white_show, cv::Point(x, y), 6, cv::Scalar(255, 255, 0), 3);
+    }*/
 
 
     // 消失点を描画する

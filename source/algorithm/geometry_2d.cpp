@@ -96,9 +96,9 @@ void combine2Segments(const cv::Point2d &a1, const cv::Point2d &a2, const cv::Po
     c2 = center_p + max_t * vector_p;
 }
 
-void reduceSegments(const std::vector<cv::Vec4f> &input, std::vector<cv::Vec4f> &output, double pos_threshold, double dir_threshold) {
-    output.clear();
-
+void reduceMultipleSegments(const std::vector<cv::Vec4f> &input, std::vector<cv::Vec4f> &output, double pos_threshold, double dir_threshold) {
+    int number_of_outputs = 0;
+    output.resize(input.size());
     std::vector<bool> processed(input.size(), false);
     for (int i = 0; i < static_cast<int>(input.size()); i++) {
         if (processed[i] == true) {
@@ -136,11 +136,87 @@ void reduceSegments(const std::vector<cv::Vec4f> &input, std::vector<cv::Vec4f> 
             }
         }
 
-        cv::Vec4f result;
+        cv::Vec4f &result = output[number_of_outputs];
         result[0] = static_cast<float>(a1.x);
         result[1] = static_cast<float>(a1.y);
         result[2] = static_cast<float>(a2.x);
         result[3] = static_cast<float>(a2.y);
-        output.push_back(result);
+        number_of_outputs++;
     }
+    output.resize(number_of_outputs);
+}
+
+void connectMultipleSegments(const std::vector<cv::Vec4f> &input, std::vector<cv::Vec4f> &output, double gap_threshold, double pos_threshold, double dir_threshold) {
+    int number_of_outputs = 0;
+    output.resize(input.size());
+    std::vector<bool> processed(input.size(), false);
+    for (int i = 0; i < static_cast<int>(input.size()); i++) {
+        if (processed[i] == true) {
+            continue;
+        }
+        processed[i] = true;
+
+        // 線分A
+        cv::Point2d a1(input[i][0], input[i][1]);
+        cv::Point2d a2(input[i][2], input[i][3]);
+        cv::Point2d vector_a = a2 - a1;
+        double length_a = normalizeAndLength(vector_a);
+        for (int j = i + 1; j < static_cast<int>(input.size()); j++) {
+            if (processed[j] == true) {
+                continue;
+            }
+
+            // 線分B
+            cv::Point2d b1(input[j][0], input[j][1]);
+            cv::Point2d b2(input[j][2], input[j][3]);
+            cv::Point2d vector_b = b2 - b1;
+            double length_b = normalizeAndLength(vector_b);
+
+            // 線分A,Bの成す角がほぼ平行であるか調べる
+            double cos_angle = vector_a.dot(vector_b);
+            if (abs(cos_angle) < dir_threshold) {
+                continue;
+            }
+            if (cos_angle < 0) {
+                std::swap(b1, b2);
+            }
+
+            // 線分同士が近いか調べる
+            if (length_a < length_b) {
+                if (pos_threshold < distanceBetweenLineAndSegment(b1, b2, a1, a2)) {
+                    continue;
+                }
+            } else {
+                if (pos_threshold < distanceBetweenLineAndSegment(a1, a2, b1, b2)) {
+                    continue;
+                }
+            }
+
+            // 線分を合成する
+            cv::Point2d c1, c2;
+            combine2Segments(a1, a2, b1, b2, c1, c2);
+            cv::Point2d vector_c(c2 - c1);
+            double length_c = normalizeAndLength(vector_c);
+
+            // 合成した線分が長すぎないかチェックする
+            if (gap_threshold <= (length_c - length_a - length_b)) {
+                continue;
+            }
+
+            a1 = c1;
+            a2 = c2;
+            vector_a = vector_c;
+            length_a = length_c;
+
+            processed[j] = true;
+        }
+
+        cv::Vec4f &result = output[number_of_outputs];
+        result[0] = static_cast<float>(a1.x);
+        result[1] = static_cast<float>(a1.y);
+        result[2] = static_cast<float>(a2.x);
+        result[3] = static_cast<float>(a2.y);
+        number_of_outputs++;
+    }
+    output.resize(number_of_outputs);
 }

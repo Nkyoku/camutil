@@ -116,9 +116,19 @@ static inline double normalizeAndLength(cv::Point2d &a) {
 void combine2Segments(const cv::Point2d &a1, const cv::Point2d &a2, const cv::Point2d &b1, const cv::Point2d &b2, cv::Point2d &c1, cv::Point2d &c2);
 
 // 位置や傾きの近い線分を統合して線分数を削減する
-// pos_threshold : 統合される座標のずれの閾値(px)
-// dir_threshold : 統合される傾きのずれの閾値(cosθ)
-void reduceSegments(const std::vector<cv::Vec4f> &input, std::vector<cv::Vec4f> &output, double pos_threshold = 5.0, double dir_threshold = 0.95);
+// input         : 統合される線分リスト
+// output        : 統合された線分リスト(inputと同じvectorでも構わない)
+// pos_threshold : 統合される線分同士の座標のずれの閾値(px)
+// dir_threshold : 統合される線分同士の傾きのずれの閾値(cosθ)
+void reduceMultipleSegments(const std::vector<cv::Vec4f> &input, std::vector<cv::Vec4f> &output, double pos_threshold, double dir_threshold);
+
+// 途切れた線分を統合する
+// input         : 統合される線分リスト
+// output        : 統合された線分リスト(inputと同じvectorでも構わない)
+// gap_threshold : 統合される線分同士の断絶の閾値(px)
+// pos_threshold : 統合される線分同士の座標のずれの閾値(px)
+// dir_threshold : 統合される線分同士の傾きのずれの閾値(cosθ)
+void connectMultipleSegments(const std::vector<cv::Vec4f> &input, std::vector<cv::Vec4f> &output, double gap_threshold, double pos_threshold, double dir_threshold);
 
 
 

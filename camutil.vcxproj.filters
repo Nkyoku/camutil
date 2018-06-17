@@ -67,9 +67,6 @@
     <ClCompile Include="source\videothread\calibration.cpp">
       <Filter>Source Files\videothread</Filter>
     </ClCompile>
-    <ClCompile Include="source\videothread\sgbm.cpp">
-      <Filter>Source Files\videothread</Filter>
-    </ClCompile>
     <ClCompile Include="source\videothread\stereo.cpp">
       <Filter>Source Files\videothread</Filter>
     </ClCompile>
@@ -106,6 +103,18 @@
     <ClCompile Include="source\algorithm\geometry_2d.cpp">
       <Filter>Source Files\algorithm</Filter>
     </ClCompile>
+    <ClCompile Include="source\algorithm\position_tracker.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="source\videothread\gradient.cpp">
+      <Filter>Source Files\videothread</Filter>
+    </ClCompile>
+    <ClCompile Include="source\algorithm\gaussian_dog.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="source\algorithm\gradient_based_stereo_matching.cpp">
+      <Filter>Source Files\algorithm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="source\videothread\calibration.h">
@@ -115,9 +124,6 @@
       <Filter>Source Files\videothread</Filter>
     </QtMoc>
     <QtMoc Include="source\videothread\preview.h">
-      <Filter>Source Files\videothread</Filter>
-    </QtMoc>
-    <QtMoc Include="source\videothread\sgbm.h">
       <Filter>Source Files\videothread</Filter>
     </QtMoc>
     <QtMoc Include="source\videothread\stereo.h">
@@ -140,6 +146,9 @@
     </QtMoc>
     <QtMoc Include="source\videothread.h">
       <Filter>Source Files</Filter>
+    </QtMoc>
+    <QtMoc Include="source\videothread\gradient.h">
+      <Filter>Source Files\videothread</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -185,6 +194,15 @@
       <Filter>Source Files\algorithm</Filter>
     </ClInclude>
     <ClInclude Include="source\algorithm\geometry_2d_inl.h">
+      <Filter>Source Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\position_tracker.h">
+      <Filter>Source Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\gaussian_dog.h">
+      <Filter>Source Files\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="source\algorithm\gradient_based_stereo_matching.h">
       <Filter>Source Files\algorithm</Filter>
     </ClInclude>
   </ItemGroup>

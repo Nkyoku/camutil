@@ -69,7 +69,7 @@ bool Undistort::save(void) {
     return true;
 }
 
-bool Undistort::undistort(const cv::Mat &distorted_image, cv::Mat &undistorted_image, int side) {
+bool Undistort::undistort(const cv::Mat &distorted_image, cv::Mat &undistorted_image, int side) const {
     if (m_Map1[0].empty() || m_Map1[1].empty() || m_Map2[0].empty() || m_Map2[1].empty()) {
         return false;
     }
@@ -77,7 +77,7 @@ bool Undistort::undistort(const cv::Mat &distorted_image, cv::Mat &undistorted_i
     return true;
 }
 
-cv::Mat Undistort::undistort(const cv::Mat &distorted_image, int side, bool empty_if_uncalibrated) {
+cv::Mat Undistort::undistort(const cv::Mat &distorted_image, int side, bool empty_if_uncalibrated) const {
     cv::Mat result;
     if (undistort(distorted_image, result, side) == false) {
         if (empty_if_uncalibrated == false) {
@@ -89,7 +89,7 @@ cv::Mat Undistort::undistort(const cv::Mat &distorted_image, int side, bool empt
     return result;
 }
 
-bool Undistort::reprojectImageTo3D(const cv::Mat &disparity, cv::Mat &output, bool missing_value) {
+bool Undistort::reprojectImageTo3D(const cv::Mat &disparity, cv::Mat &output, bool missing_value) const {
     if (m_DisparityMatrix.empty() == true) {
         return false;
     }
@@ -97,7 +97,7 @@ bool Undistort::reprojectImageTo3D(const cv::Mat &disparity, cv::Mat &output, bo
     return true;
 }
 
-bool Undistort::reprojectPointsTo3D(const cv::Mat &disparity, cv::Mat &output) {
+bool Undistort::reprojectPointsTo3D(const cv::Mat &disparity, cv::Mat &output) const {
     if (m_DisparityMatrix.empty() == true) {
         return false;
     }

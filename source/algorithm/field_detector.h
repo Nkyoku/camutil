@@ -10,15 +10,20 @@ public:
     FieldDetector(void);
 
     // 芝の検知を行う
-    // rectangleに芝の範囲を示す矩形の4つの頂点の座標を返す
+    // rangesに各Y座標における芝のX座標での範囲のリストを返す
     // 検知した芝の2値化画像を返値として返す
-    cv::Mat& detectGrass(const cv::Mat &lab_image, double scale = 1.0, std::vector<cv::Point2d> *rectangle = nullptr);
+    const cv::Mat& detectGrass(const cv::Mat &lab_image, std::vector<cv::Range> *ranges = nullptr, int scale = 1);
+
+    // 画像のモーメントを利用して芝の検知を行う
+    // rangesに各Y座標における芝のX座標での範囲のリストを返す
+    // 検知した芝の2値化画像を返値として返す
+    const cv::Mat& detectGrassMoment(const cv::Mat &lab_image, std::vector<cv::Range> *ranges = nullptr, int scale = 1, std::vector<cv::Point2d> *contours = nullptr);
 
     // 白線の検知を行う
     // rectangleにはdetectGrass()で検知した芝の領域を示す矩形を渡す
     // line_segmentsに検知した白線の線分リストを返す
     // 検知した白線の2値化画像を返値として返す
-    cv::Mat& detectLines(const cv::Mat &lab_image, std::vector<cv::Vec4f> &line_segments, std::vector<cv::Vec4f> *edge_line_segments = nullptr);
+    const cv::Mat& detectLines(const cv::Mat &lab_image, std::vector<cv::Vec4f> &line_segments, std::vector<cv::Vec4f> *edge_line_segments = nullptr);
 
 
 
@@ -41,8 +46,14 @@ private:
     // 白線の色を示すL*a*b*色空間の領域の初期値
     static const LabRegion kDefaultWhiteRegion;
 
+    // 芝の領域で無視する画素数
+    static constexpr int kGrassNoiseRejection = 10;
+
     // 芝の領域のマージン
     static constexpr double kGrassMargin = 1.2;
+
+    // 芝の分散から領域サイズへの変換係数(一様分布の場合は√12)
+    static constexpr double kGrassVarianceCoefficient = 3.5;
 
     // 検出する白線の最低長(入力画像サイズに対する割合)
     static constexpr double kLineLengthThreshold = 1.0 / 32.0;
@@ -66,16 +77,16 @@ private:
     static constexpr double kStretchRate = 1.2;
 
     // フィールドの白線テンプレート
-    static const std::vector<cv::Vec4f> kFieldTemplate;
+    //static const std::vector<cv::Vec4f> kFieldTemplate;
 
     // 交点の情報を格納する構造体
-    struct Intersection {
-        // 交点の座標
-        cv::Point2d point;
-
-        // 交点を形成する線分の番号
-        int segment1, segment2;
-    };
+    //struct Intersection {
+    //    // 交点の座標
+    //    cv::Point2d point;
+    //
+    //    // 交点を形成する線分の番号
+    //    int segment1, segment2;
+    //};
 
     // 線分検知器
     cv::Ptr<cv::LineSegmentDetector> m_Lsd;
@@ -83,29 +94,27 @@ private:
     // 芝の2値化画像
     cv::Mat m_BinaryGrass;
 
-    // 芝の領域の頂点リスト
-    std::array<cv::Point2d, 4> m_GrassContours, m_EnlargedGrassContours;
-
-    // 芝の領域の幅と高さ
-    double m_GrassContourWidth, m_GrassContourHeight;
+    // 芝の領域の範囲リスト
+    std::vector<cv::Range> m_GrassRanges;
+    //std::array<cv::Point2d, 4> m_GrassContours;
 
     // 白線の2値化画像
     cv::Mat m_BinaryLines;
 
-    // 白線の線分リスト
+    // 白線のエッジ線分リスト
     std::vector<cv::Vec4f> m_LineSegments, m_LongerLineSegments;
 
     // 線分のエッジ極性
     std::vector<bool> m_EdgePolarity;
 
-    // 合成された線分のリスト
+    // 合成された白線の線分リスト
     std::vector<cv::Vec4f> m_WhiteLines;
 
     // L*a*b*の値がLabRegionの内側か判定する
     static bool isInsideLab(int L, int a, int b, const LabRegion &region);
 
     // L*a*b*の値が複数のLabRegionの内側か判定する
-    static int isInsideLab(int L, int a, int b, const std::vector<LabRegion> &region_list);
+    //static int isInsideLab(int L, int a, int b, const std::vector<LabRegion> &region_list);
 
     // 線分の長さの2乗を計算する
     static double segmentLength2(const cv::Vec4f &segment) {
@@ -129,6 +138,5 @@ private:
     static void combineParallelSegments(const std::vector<cv::Vec4f> &input_segments, const std::vector<bool> &edge_polarities, const cv::Mat &binary_image, std::vector<cv::Vec4f> &output_segments, double threshold);
 
     // 線分の交点を求める
-    static void getIntersections(const std::vector<cv::Vec4f> &input_segments, std::vector<Intersection> &intersections, const std::vector<cv::Range> &ranges);
-
+    //static void getIntersections(const std::vector<cv::Vec4f> &input_segments, std::vector<Intersection> &intersections, const std::vector<cv::Range> &ranges);
 };

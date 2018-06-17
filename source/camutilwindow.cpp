@@ -3,9 +3,9 @@
 #include "tabpage.h"
 //#include "videothread/preview.h"
 #include "videothread/calibration.h"
-//#include "videothread/sgbm.h"
 #include "videothread/stereo.h"
 #include "videothread/fielddetector.h"
+#include "videothread/gradient.h"
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QSettings>
@@ -27,9 +27,9 @@ CamUtilWindow::CamUtilWindow(QWidget *parent)
     // タブに各VideoThreadのGUIのページを作成する
     //addTabPage(new VideoPreviewThread(&m_VideoInput));
     addTabPage(new VideoCalibrationThread(&m_VideoInput));
-    //addTabPage(new VideoSgbmThread(&m_VideoInput));
     addTabPage(new VideoStereoThread(&m_VideoInput));
     addTabPage(new VideoFieldDetectorThread(&m_VideoInput));
+    addTabPage(new VideoGradientThread(&m_VideoInput));
 
     connect(m_ui->SourceSelect, &QPushButton::clicked, &m_SourceDialog, &QDialog::exec);
 	connect(m_ui->SourceOpen, &QPushButton::clicked, this, &CamUtilWindow::openSource);

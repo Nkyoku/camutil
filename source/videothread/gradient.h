@@ -2,17 +2,19 @@
 
 #include "videothread.h"
 #include "algorithm/undistort.h"
-#include <opencv2/calib3d.hpp>
+#include "algorithm/gaussian_dog.h"
+#include "algorithm/gradient_based_stereo_matching.h"
+#include <opencv2/core/ocl.hpp>
 
 QT_FORWARD_DECLARE_CLASS(ImageViewGl);
 
-class VideoSgbmThread : public VideoThread{
+class VideoGradientThread : public VideoThread{
 	Q_OBJECT
 
 public:
-    VideoSgbmThread(VideoInput *video_input);
+    VideoGradientThread(VideoInput *video_input);
 
-    virtual ~VideoSgbmThread();
+    virtual ~VideoGradientThread();
 
     virtual QString initializeOnce(QWidget *parent) override;
 
@@ -31,12 +33,19 @@ private:
     // 歪み補正器
     Undistort m_Undistort;
 
-    // SGBM法
-    cv::Ptr<cv::StereoSGBM> m_Sgbm;
+    // フィルタ
+    //GaussianDoG m_GaussianDoG;
 
-    // 設定された最大偏差
-    int m_MaxDisparity = 64;
+    // ステレオマッチング
+    GradientBasedStereoMatching m_StereoMatching;
 
     // 表示画像
-    ImageViewGl *m_Color[2], *m_Depth;
+    ImageViewGl *m_Color[2], *m_Gradient[2];
+
+    // オリジナル画像
+    cv::Mat m_OriginalImage[2];
+
+    // グレースケール画像
+    cv::Mat m_GrayscaleImage[2];
+
 };

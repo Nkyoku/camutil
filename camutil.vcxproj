@@ -19,6 +19,9 @@
     <ClCompile Include="source\algorithm\census_based_stereo_matching.cpp" />
     <ClCompile Include="source\algorithm\enhancement_filter.cpp" />
     <ClCompile Include="source\algorithm\field_detector.cpp" />
+    <ClCompile Include="source\algorithm\gaussian_dog.cpp" />
+    <ClCompile Include="source\algorithm\gradient_based_stereo_matching.cpp" />
+    <ClCompile Include="source\algorithm\position_tracker.cpp" />
     <ClCompile Include="source\algorithm\radon_transform.cpp" />
     <ClCompile Include="source\algorithm\dual_rgb_stereo_matching.cpp" />
     <ClCompile Include="source\algorithm\geometry_2d.cpp" />
@@ -32,8 +35,8 @@
     <ClCompile Include="source\videothread.cpp" />
     <ClCompile Include="source\videothread\calibration.cpp" />
     <ClCompile Include="source\videothread\fielddetector.cpp" />
+    <ClCompile Include="source\videothread\gradient.cpp" />
     <ClCompile Include="source\videothread\preview.cpp" />
-    <ClCompile Include="source\videothread\sgbm.cpp" />
     <ClCompile Include="source\videothread\stereo.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -66,17 +69,20 @@
     <ClInclude Include="source\algorithm\census_based_stereo_matching.h" />
     <ClInclude Include="source\algorithm\enhancement_filter.h" />
     <ClInclude Include="source\algorithm\field_detector.h" />
+    <ClInclude Include="source\algorithm\gaussian_dog.h" />
     <ClInclude Include="source\algorithm\geometry_2d_inl.h" />
+    <ClInclude Include="source\algorithm\gradient_based_stereo_matching.h" />
+    <ClInclude Include="source\algorithm\position_tracker.h" />
     <ClInclude Include="source\algorithm\radon_transform.h" />
     <ClInclude Include="source\algorithm\dual_rgb_stereo_matching.h" />
     <ClInclude Include="source\algorithm\geometry_2d.h" />
     <ClInclude Include="source\algorithm\undistort.h" />
     <ClInclude Include="source\algorithm\weighted_linear_regression.h" />
     <ClInclude Include="source\qtmat.h" />
-    <QtMoc Include="source\videothread\sgbm.h">
-      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\app\opencv-3.4.1\build\include;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtOpenGL</IncludePath>
+    <QtMoc Include="source\videothread\gradient.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\app\opencv-3.4.1\build\include;.\GeneratedFiles;.\source;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtOpenGL</IncludePath>
       <Define Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE;WIN32;WIN64;QT_DLL;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_OPENGL_LIB</Define>
-      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\app\opencv-3.4.1\build\include;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtOpenGL</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\app\opencv-3.4.1\build\include;.\GeneratedFiles;.\source;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtOpenGL</IncludePath>
       <Define Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;_UNICODE;WIN32;WIN64;QT_DLL;QT_NO_DEBUG;NDEBUG;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_OPENGL_LIB</Define>
     </QtMoc>
     <QtMoc Include="source\videothread\stereo.h">
@@ -173,7 +179,7 @@
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>C:\app\opencv-3.4.1\build\x64\vc15\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_world341d.lib;qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;Qt5OpenGLd.lib;opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world341d.lib;qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;Qt5OpenGLd.lib;Qt5DataVisualizationd.lib;opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <QtMoc>
       <OutputFile>.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</OutputFile>
@@ -207,7 +213,7 @@
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>C:\app\opencv-3.4.1\build\x64\vc15\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_world341.lib;qtmain.lib;Qt5Core.lib;Qt5Gui.lib;Qt5Widgets.lib;Qt5OpenGL.lib;opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world341.lib;qtmain.lib;Qt5Core.lib;Qt5Gui.lib;Qt5Widgets.lib;Qt5OpenGL.lib;Qt5DataVisualization.lib;opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <QtMoc>
       <OutputFile>.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</OutputFile>

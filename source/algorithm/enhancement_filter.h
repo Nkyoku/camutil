@@ -6,12 +6,17 @@
 class EnhancementFilter {
 public:
     // コンストラクタ
-    EnhancementFilter(double scale_factor, int kernel_size);
+    EnhancementFilter(double scale_factor = 1.0, int kernel_size = 3);
 
     // フィルタ処理を行う
     void compute(const cv::Mat &src, cv::Mat &dest);
 
-//private:
+    // 中間値画像を取得する
+    const cv::Mat& medianedImage(void) const {
+        return m_Medianed;
+    }
+
+private:
     // 縮小比率の逆数(1以下)
     double m_InversedScaleFactor;
 

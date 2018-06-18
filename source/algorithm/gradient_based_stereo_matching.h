@@ -21,8 +21,8 @@ public:
     // disparity_mapにCV_32F型の偏差マップが出力される
     bool compute(const cv::Mat &left_image, const cv::Mat &right_image, cv::Mat &disparity_map, cv::Mat &likelihood_map);
 
-
-
+    // ある点のコスト関数を取得する
+    void getCostsAtPoint(int x, int y, std::vector<float> &costs) const;
 
 
 private:
@@ -44,12 +44,12 @@ private:
 
 
     // コストボリューム
-    std::vector<cv::Mat> m_CostVolume;
+    cv::Mat m_CostVolume;
 
     
 
-    // ある偏差でのコスト画像を計算する
-    void calculateCostImage(const cv::Mat &left_image, const cv::Mat &right_image, int disparity, cv::Mat &cost_image);
+    // コストボリュームを計算する
+    void calculateCostVolume(const cv::Mat &left_image, const cv::Mat &right_image);
 
     // コストボリュームから偏差マップを生成する
     void calculateDisparity(cv::Mat &disparity_map, cv::Mat &likelihood_map);

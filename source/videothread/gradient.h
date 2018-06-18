@@ -34,13 +34,16 @@ private:
     Undistort m_Undistort;
 
     // フィルタ
-    //GaussianDoG m_GaussianDoG;
+    GaussianDoG m_GaussianDoG;
 
     // ステレオマッチング
-    GradientBasedStereoMatching m_StereoMatching;
+    //GradientBasedStereoMatching m_StereoMatching;
 
     // 表示画像
     ImageViewGl *m_Color[2], *m_Gradient[2];
+
+    // 注視点
+    int m_WatchPointX = -1, m_WatchPointY = -1;
 
     // オリジナル画像
     cv::Mat m_OriginalImage[2];
@@ -48,4 +51,9 @@ private:
     // グレースケール画像
     cv::Mat m_GrayscaleImage[2];
 
+    // 注視点を設定する
+    Q_SLOT void watch(int x, int y) {
+        m_WatchPointX = x;
+        m_WatchPointY = y;
+    }
 };

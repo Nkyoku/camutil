@@ -7,7 +7,7 @@
 #include <math.h>
 
 VideoGradientThread::VideoGradientThread(VideoInput *video_input)
-    : VideoThread(video_input), m_GaussianDoG(21, 4.0)
+    : VideoThread(video_input), m_GaussianDoG(21, 3.0)
 {
     
 }
@@ -17,7 +17,6 @@ VideoGradientThread::~VideoGradientThread(){
 }
 
 QString VideoGradientThread::initializeOnce(QWidget *parent) {
-    //m_StereoMatching.setMaximumDisparity(32);
     return tr("Gradient");
 }
 
@@ -69,39 +68,65 @@ void VideoGradientThread::processImage(const cv::Mat &input_image) {
     m_Undistort.undistort(cv::Mat(input_image, cv::Rect(0, 0, width, height)), m_OriginalImage[0], 0);
     m_Undistort.undistort(cv::Mat(input_image, cv::Rect(width, 0, width, height)), m_OriginalImage[1], 1);
 
-    /*
-    cv::Mat disparity_map, likelihood_map;
-    m_StereoMatching.compute(m_OriginalImage[0], m_OriginalImage[1], disparity_map, likelihood_map);
+    cv::Mat gray_left, gray_right;
+    cv::cvtColor(m_OriginalImage[0], gray_left, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(m_OriginalImage[1], gray_right, cv::COLOR_BGR2GRAY);
 
-    cv::Mat disparity_map_8bit, likelihood_map_8bit, likelihood_map_color;
+    cv::Mat disparity_map;
+    m_StereoMatching.compute(gray_left, gray_right, disparity_map, 32);
+
+    cv::Mat disparity_map_8bit;
     disparity_map.convertTo(disparity_map_8bit, CV_8U, 8.0);
-    likelihood_map.convertTo(likelihood_map_8bit, CV_8U, 64);
-    cv::cvtColor(likelihood_map_8bit, likelihood_map_color, cv::COLOR_GRAY2RGB);
 
-    if ((m_WatchPointX != -1) && (m_WatchPointY != -1)) {
-        std::vector<float> costs;
-        m_StereoMatching.getCostsAtPoint(m_WatchPointX, m_WatchPointY, costs);
-        if (costs.empty() == false) {
-            int bar_width = width / 32;
-            for (int d = 0; d < (int)costs.size(); d++) {
-                int bar_height = costs[d];
-                cv::rectangle(likelihood_map_color, cv::Rect(d * bar_width, height - bar_height, bar_width, bar_height), cv::Scalar(255, 0, 0), cv::FILLED);
-            }
-        }
-    }
-    
     m_Color[0]->setImage(m_OriginalImage[0]);
     m_Color[1]->setImage(m_OriginalImage[1]);
-    m_Gradient[0]->setImage(disparity_map_8bit);
-    m_Gradient[1]->setImage(likelihood_map_color);
-    */
+    m_Gradient[0]->setImage(disparity_map_8bit);//*/
 
+    
+    /*
     cv::Mat gray;
     cv::cvtColor(m_OriginalImage[0], gray, cv::COLOR_BGR2GRAY);
     m_GaussianDoG.compute(gray);
 
+    /*cv::Mat dominant_0(height, width, CV_8U);
+    cv::Mat dominant_45(height, width, CV_8U);
+    cv::Mat dominant_90(height, width, CV_8U);
+    cv::Mat dominant_135(height, width, CV_8U);
+    for (int y = 0; y < height; y++) {
+        uint8_t *dominant_0_ptr = dominant_0.ptr(y);
+        uint8_t *dominant_45_ptr = dominant_45.ptr(y);
+        uint8_t *dominant_90_ptr = dominant_90.ptr(y);
+        uint8_t *dominant_135_ptr = dominant_135.ptr(y);
+        const uint8_t *dog_0_ptr = m_GaussianDoG.dog0deg().ptr(y);
+        const uint8_t *dog_45_ptr = m_GaussianDoG.dog45deg().ptr(y);
+        const uint8_t *dog_90_ptr = m_GaussianDoG.dog90deg().ptr(y);
+        const uint8_t *dog_135_ptr = m_GaussianDoG.dog135deg().ptr(y);
+        for (int x = 0; x < width; x++) {
+            int max_value = 0;
+            max_value = std::max(max_value, abs(dog_0_ptr[x] - 128));
+            max_value = std::max(max_value, abs(dog_45_ptr[x] - 128));
+            max_value = std::max(max_value, abs(dog_90_ptr[x] - 128));
+            max_value = std::max(max_value, abs(dog_135_ptr[x] - 128));
+            if (max_value < 2) {
+                max_value = -1;
+            }
+            dominant_0_ptr[x] = (abs(dog_0_ptr[x] - 128) == max_value) ? 255 : 0;
+            dominant_45_ptr[x] = (abs(dog_45_ptr[x] - 128) == max_value) ? 255 : 0;
+            dominant_90_ptr[x] = (abs(dog_90_ptr[x] - 128) == max_value) ? 255 : 0;
+            dominant_135_ptr[x] = (abs(dog_135_ptr[x] - 128) == max_value) ? 255 : 0;
+        }
+    }
+
+    m_Color[0]->setImage(dominant_0);
+    m_Color[1]->setImage(dominant_45);
+    m_Gradient[0]->setImage(dominant_90);
+    m_Gradient[1]->setImage(dominant_135);
+    //*/
+
+    /*
     m_Color[0]->setImage(m_GaussianDoG.dog0deg());
-    m_Color[1]->setImage(m_GaussianDoG.dog45deg());
-    m_Gradient[0]->setImage(m_GaussianDoG.dog90deg());
-    m_Gradient[1]->setImage(m_GaussianDoG.dog135deg());
+    m_Color[1]->setImage(m_GaussianDoG.dog90deg());
+    m_Gradient[0]->setImage(m_GaussianDoG.dogNarrow0deg());
+    m_Gradient[1]->setImage(m_GaussianDoG.dogNarrow90deg());
+    //*/
 }

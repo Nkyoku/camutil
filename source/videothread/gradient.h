@@ -37,7 +37,7 @@ private:
     GaussianDoG m_GaussianDoG;
 
     // ステレオマッチング
-    //GradientBasedStereoMatching m_StereoMatching;
+    GradientBasedStereoMatching m_StereoMatching;
 
     // 表示画像
     ImageViewGl *m_Color[2], *m_Gradient[2];

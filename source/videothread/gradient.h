@@ -2,9 +2,8 @@
 
 #include "videothread.h"
 #include "algorithm/undistort.h"
-#include "algorithm/gaussian_dog.h"
 #include "algorithm/gradient_based_stereo_matching.h"
-#include <opencv2/core/ocl.hpp>
+#include <opencv2/imgproc.hpp>
 
 QT_FORWARD_DECLARE_CLASS(ImageViewGl);
 
@@ -33,11 +32,11 @@ private:
     // 歪み補正器
     Undistort m_Undistort;
 
-    // フィルタ
-    GaussianDoG m_GaussianDoG;
-
     // ステレオマッチング
     GradientBasedStereoMatching m_StereoMatching;
+
+    // 線分検知器
+    cv::Ptr<cv::LineSegmentDetector> m_Lsd;
 
     // 表示画像
     ImageViewGl *m_Color[2], *m_Gradient[2];

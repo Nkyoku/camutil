@@ -7,9 +7,9 @@
 #include <math.h>
 
 VideoGradientThread::VideoGradientThread(VideoInput *video_input)
-    : VideoThread(video_input), m_GaussianDoG(21, 3.0)
+    : VideoThread(video_input)
 {
-    
+    m_Lsd = cv::createLineSegmentDetector();
 }
 
 VideoGradientThread::~VideoGradientThread(){
@@ -40,7 +40,6 @@ void VideoGradientThread::initialize(QWidget *parent) {
         m_Gradient[side] = new ImageViewGl;
         grid_layout->addWidget(m_Gradient[side], 1, side);
         connect(this, &VideoThread::update, m_Gradient[side], QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
-
     }
 
     m_Gradient[0]->useMouse();
@@ -73,14 +72,20 @@ void VideoGradientThread::processImage(const cv::Mat &input_image) {
     cv::cvtColor(m_OriginalImage[1], gray_right, cv::COLOR_BGR2GRAY);
 
     cv::Mat disparity_map;
-    m_StereoMatching.compute(gray_left, gray_right, disparity_map, 32);
-
-    cv::Mat disparity_map_8bit;
+    m_StereoMatching.precompute(gray_left, gray_right);
+    
+    m_StereoMatching.compute(disparity_map, 32);
+    cv::Mat disparity_map_8bit, disparity_map_8bit_color;
     disparity_map.convertTo(disparity_map_8bit, CV_8U, 8.0);
 
-    m_Color[0]->setImage(m_OriginalImage[0]);
-    m_Color[1]->setImage(m_OriginalImage[1]);
-    m_Gradient[0]->setImage(disparity_map_8bit);//*/
+    cv::Mat gradient_l_x, gradient_r_x;
+    cv::cvtColor(m_StereoMatching.m_GaussianDoG[0]->gradient0deg(), gradient_l_x, cv::COLOR_GRAY2RGB);
+    cv::cvtColor(m_StereoMatching.m_GaussianDoG[1]->gradient0deg(), gradient_r_x, cv::COLOR_GRAY2RGB);
+
+    m_Color[0]->setImage(gray_left);
+    m_Color[1]->setImage(disparity_map_8bit);
+    m_Gradient[0]->setImage(gradient_l_x);
+    m_Gradient[1]->setImage(gradient_r_x);//*/
 
     
     /*

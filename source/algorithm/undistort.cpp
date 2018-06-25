@@ -7,9 +7,9 @@ Undistort::Undistort(void) {
 
 }
 
-bool Undistort::load(int width, int height) {
-    m_Width = width;
-    m_Height = height;
+bool Undistort::load(int width_, int height_) {
+    m_Width = width_;
+    m_Height = height_;
     
     cv::FileStorage storage(generateFileName(m_Width, m_Height), cv::FileStorage::READ);
     if (storage.isOpened() == false) {
@@ -97,29 +97,39 @@ bool Undistort::reprojectImageTo3D(const cv::Mat &disparity, cv::Mat &output, bo
     return true;
 }
 
-bool Undistort::reprojectPointsTo3D(const cv::Mat &disparity, cv::Mat &output) const {
+bool Undistort::reprojectPointsTo3D(const std::vector<cv::Point3f> &disparities, std::vector<cv::Point3f> &output) const {
     if (m_DisparityMatrix.empty() == true) {
         return false;
     }
-    cv::perspectiveTransform(disparity, output, m_DisparityMatrix);
+    cv::perspectiveTransform(disparities, output, m_DisparityMatrix);
     return true;
 }
 
-bool Undistort::calibrate(int width, int height, const std::vector<std::vector<cv::Point3f>> &object_points, const std::vector<std::vector<cv::Point2f>> &image_points_left, const std::vector<std::vector<cv::Point2f>> &image_points_right) {
+bool Undistort::projectPointsTo2D(const std::vector<cv::Point3f> &points3d, std::vector<cv::Point2f> &points2d, int side) const {
+    if (m_DisparityMatrix.empty() == true) {
+        return false;
+    }
+    cv::Mat zero = cv::Mat::zeros(3, 1, CV_32F);
+    //cv::projectPoints(points3d, zero, zero, m_CameraMatrix[side], m_DistortionCoefficients[side], points2d);
+    cv::projectPoints(points3d, zero, zero, m_CameraMatrix[side], cv::Mat(), points2d); // カメラからの入力画像はすでに歪み補正されている
+    return true;
+}
+
+bool Undistort::calibrate(int width_, int height_, const std::vector<std::vector<cv::Point3f>> &object_points, const std::vector<std::vector<cv::Point2f>> &image_points_left, const std::vector<std::vector<cv::Point2f>> &image_points_right) {
     if (object_points.empty() || image_points_left.empty() || image_points_right.empty()) {
         return false;
     }
 
-    cv::Size size(width, height);
+    cv::Size size(width_, height_);
 
     std::vector<cv::Mat> rvecs, tvecs;
     cv::calibrateCamera(object_points, image_points_left, size, m_CameraMatrix[0], m_DistortionCoefficients[0], rvecs, tvecs);
     cv::calibrateCamera(object_points, image_points_right, size, m_CameraMatrix[1], m_DistortionCoefficients[1], rvecs, tvecs);
 
     cv::Mat R, T, E, F;
-    cv::stereoCalibrate(object_points, image_points_left, image_points_right, m_CameraMatrix[0], m_DistortionCoefficients[0], m_CameraMatrix[1], m_DistortionCoefficients[1], size, R, T, E, F);
-
-    cv::stereoRectify(m_CameraMatrix[0], m_DistortionCoefficients[0], m_CameraMatrix[1], m_DistortionCoefficients[1], size, R, T, m_RectificationMatrix[0], m_RectificationMatrix[1], m_ProjectionMatrix[0], m_ProjectionMatrix[1], m_DisparityMatrix);
+    cv::stereoCalibrate(object_points, image_points_left, image_points_right, m_CameraMatrix[0], m_DistortionCoefficients[0], m_CameraMatrix[1], m_DistortionCoefficients[1], size, R, T, E, F, cv::CALIB_USE_INTRINSIC_GUESS | cv::CALIB_SAME_FOCAL_LENGTH | cv::CALIB_ZERO_TANGENT_DIST);
+    
+    cv::stereoRectify(m_CameraMatrix[0], m_DistortionCoefficients[0], m_CameraMatrix[1], m_DistortionCoefficients[1], size, R, T, m_RectificationMatrix[0], m_RectificationMatrix[1], m_ProjectionMatrix[0], m_ProjectionMatrix[1], m_DisparityMatrix, cv::CALIB_ZERO_DISPARITY, 0.0);
 
     generateMap(size);
 

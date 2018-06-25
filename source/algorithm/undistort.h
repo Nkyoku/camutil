@@ -32,7 +32,10 @@ public:
     bool reprojectImageTo3D(const cv::Mat &disparity, cv::Mat &output, bool missing_value = false) const;
 
     // 座標と視差の組み合わせから実空間の座標を計算する
-    bool reprojectPointsTo3D(const cv::Mat &disparity, cv::Mat &output) const;
+    bool reprojectPointsTo3D(const std::vector<cv::Point3f> &disparities, std::vector<cv::Point3f> &output) const;
+
+    // 実空間の座標からカメラに投影される座標を計算する
+    bool projectPointsTo2D(const std::vector<cv::Point3f> &points3d, std::vector<cv::Point2f> &points2d, int side = 0) const;
 
     // キャリブレーション結果から補正マップを生成する
     bool calibrate(int width, int height, const std::vector<std::vector<cv::Point3f>> &object_points, const std::vector<std::vector<cv::Point2f>> &image_points_left, const std::vector<std::vector<cv::Point2f>> &image_points_right);
@@ -40,11 +43,20 @@ public:
     // 補正情報を破棄する
     void destroy(void);
 
+	// 横の解像度を取得する
+	int width(void) const {
+		return m_Width;
+	}
+
+	// 縦の解像度を取得する
+	int height(void) const {
+		return m_Height;
+	}
+
     // カメラ行列を取得する
     const cv::Mat& cameraMatrix(int side) const {
         return m_CameraMatrix[side];
     }
-
 
 private:
     // キャリブレーションが完了している

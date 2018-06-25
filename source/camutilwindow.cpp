@@ -101,6 +101,9 @@ CamUtilWindow::~CamUtilWindow(){
 void CamUtilWindow::restoreSettings(void) {
     QSettings settings(kConfigFilePath, QSettings::IniFormat);
     restoreState(settings.value("WindowState").toByteArray());
+    if (settings.value("WindowMaximized", false).toBool() == true) {
+        setWindowState(Qt::WindowMaximized);
+    }
     m_ui->Splitter->restoreState(settings.value(tr("SplitterState")).toByteArray());
     m_ui->Tab->setCurrentIndex(settings.value(tr("TabPage"), m_ui->Tab->currentIndex()).toInt());
     m_SourceDialog.restoreSettings(settings);
@@ -112,6 +115,7 @@ void CamUtilWindow::restoreSettings(void) {
 void CamUtilWindow::saveSettings(void) const {
     QSettings settings(kConfigFilePath, QSettings::IniFormat);
     settings.setValue("WindowState", saveState());
+    settings.setValue("WindowMaximized", isMaximized());
     settings.setValue("SplitterState", m_ui->Splitter->saveState());
     settings.setValue("TabPage", m_ui->Tab->currentIndex());
     m_SourceDialog.saveSettings(settings);

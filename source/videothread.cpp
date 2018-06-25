@@ -55,10 +55,10 @@ void VideoThread::doWork(void){
         bool force_fps_limitter = false;
         if (m_VideoInput->readFrame(input_image) == false) {
             // 新しいフレームが読み込めない場合は前のフレームを返す
-            if (input_image.empty() == true) {
+            //if (input_image.empty() == true) {
                 QThread::msleep(TIMEOUT);
                 continue;
-            }
+            //}
             force_fps_limitter = true;
         }
 

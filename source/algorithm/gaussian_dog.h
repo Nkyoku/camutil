@@ -35,7 +35,7 @@ public:
 
 private:
     // 1次微分係数に乗じる補正係数
-    static constexpr double k1stScale = 2.0;
+    static constexpr double k1stScale = 4.0;
 
     // DoG係数に乗じる補正係数
     static constexpr double kDoGScale = 4.0;

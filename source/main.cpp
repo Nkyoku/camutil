@@ -29,6 +29,6 @@ int main(int argc, char *argv[]){
     //QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 	QApplication app(argc, argv);
 	CamUtilWindow win;
-	win.show();
+    win.show();
 	return app.exec();
 }

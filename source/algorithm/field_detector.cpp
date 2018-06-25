@@ -79,8 +79,10 @@ const cv::Mat& FieldDetector::detectGrass(const cv::Mat &lab_image, std::vector<
             }
         }
         if (number_of_points <= kGrassNoiseRejection) {
-            m_GrassRanges[y].start = 0;
-            m_GrassRanges[y].end = 0;
+            for (int i = 0; i < scale; i++) {
+                m_GrassRanges[scale * y + i].start = 0;
+                m_GrassRanges[scale * y + i].end = 0;
+            }
             continue;
         }
         double centroid = static_cast<double>(centroid_int) / number_of_points;
@@ -200,33 +202,6 @@ const cv::Mat& FieldDetector::detectLines(const cv::Mat &lab_image, std::vector<
     int width = lab_image.cols;
     double diagonal = sqrt(width * width + height * height);
 
-    // 芝の領域に含まれる白色の成分のみを抽出する
-    // 水平スキャンラインと芝の領域の交点を計算し、始点・終点をrangesに格納する
-    /*std::vector<cv::Range> ranges(height);
-    for (int y = 0; y < height; y++) {
-        int start_x = width, end_x = 0;
-        for (int edge = 0; edge < 4; edge++) {
-            double x1 = m_GrassContours[edge].x;
-            double y1 = m_GrassContours[edge].y;
-            double x2 = m_GrassContours[(edge + 1) % 4].x;
-            double y2 = m_GrassContours[(edge + 1) % 4].y;
-            if (y2 < y1) {
-                std::swap(x1, x2);
-                std::swap(y1, y2);
-            }
-            int y1_int = static_cast<int>(ceil(y1));
-            int y2_int = static_cast<int>(floor(y2));
-            if (((y1_int <= y) && (y <= y2_int)) && (y1_int != y2_int)) {
-                double dx = (x2 - x1) / (y2 - y1);
-                double sx = x1 - dx * y1;
-                double x = sx + dx * y;
-                start_x = std::min(start_x, static_cast<int>(floor(x)));
-                end_x = std::max(end_x, static_cast<int>(ceil(x)) + 1);
-            }
-        }
-        ranges[y] = cv::Range(start_x, end_x);
-    }*/
-
     // 白線の色を検知して2値化する
     m_BinaryLines.create(height, width, CV_8UC1);
     lab_image.forEach<cv::Vec3b>([&](const cv::Vec3b &value, const int pos[2]) {
@@ -247,11 +222,12 @@ const cv::Mat& FieldDetector::detectLines(const cv::Mat &lab_image, std::vector<
     edgePolarityCheck(m_LongerLineSegments, m_BinaryLines, m_EdgePolarity);
     combineParallelSegments(m_LongerLineSegments, m_EdgePolarity, m_BinaryLines, m_WhiteLines, diagonal * kNeighborSegmentThreshold);
     connectMultipleSegments(m_WhiteLines, line_segments, diagonal * kGapThreshold, diagonal * kSameSegmentThreshold, kParallelAngle);
-    
-    if (edge_line_segments != nullptr) {
-        edge_line_segments->resize(m_LongerLineSegments.size());
-        std::copy(m_LongerLineSegments.begin(), m_LongerLineSegments.end(), edge_line_segments->begin());
-    }
+
+	// 検知した線分を出力する
+	if (edge_line_segments != nullptr) {
+		edge_line_segments->resize(m_LongerLineSegments.size());
+		std::copy(m_LongerLineSegments.begin(), m_LongerLineSegments.end(), edge_line_segments->begin());
+	}
 
     return m_BinaryLines;
 }
@@ -414,9 +390,9 @@ void FieldDetector::combineParallelSegments(const std::vector<cv::Vec4f> &input_
             // 線分Cは線分A,Bの平均ベクトル
             cv::Point2d c1((a1 + b1) * 0.5);
             cv::Point2d c2((a2 + b2) * 0.5);
-            cv::Point2d c3((c1 + c2) * 0.5);
 
             // 線分Cの中心点が白色か調べる
+            cv::Point2d c3((c1 + c2) * 0.5);
             cv::Point c3_int(static_cast<int>(round(c3.x)), static_cast<int>(round(c3.y)));
             if ((c3_int.x < 0) && (width <= c3_int.x) && (c3_int.y < 0) && (height <= c3_int.y)) {
                 continue;

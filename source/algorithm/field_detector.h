@@ -25,8 +25,6 @@ public:
     // 検知した白線の2値化画像を返値として返す
     const cv::Mat& detectLines(const cv::Mat &lab_image, std::vector<cv::Vec4f> &line_segments, std::vector<cv::Vec4f> *edge_line_segments = nullptr);
 
-
-
 private:
     // L*a*b*色空間での扇状の立体を表す構造体
     struct LabRegion {
@@ -73,21 +71,6 @@ private:
     // 2本の線分が同一だと見なす断絶の距離(入力画像サイズに対する割合)
     static constexpr double kGapThreshold = 1.0 / 8.0;
 
-    // 交点検知の線分の伸縮率
-    static constexpr double kStretchRate = 1.2;
-
-    // フィールドの白線テンプレート
-    //static const std::vector<cv::Vec4f> kFieldTemplate;
-
-    // 交点の情報を格納する構造体
-    //struct Intersection {
-    //    // 交点の座標
-    //    cv::Point2d point;
-    //
-    //    // 交点を形成する線分の番号
-    //    int segment1, segment2;
-    //};
-
     // 線分検知器
     cv::Ptr<cv::LineSegmentDetector> m_Lsd;
 
@@ -96,7 +79,6 @@ private:
 
     // 芝の領域の範囲リスト
     std::vector<cv::Range> m_GrassRanges;
-    //std::array<cv::Point2d, 4> m_GrassContours;
 
     // 白線の2値化画像
     cv::Mat m_BinaryLines;

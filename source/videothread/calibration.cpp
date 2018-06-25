@@ -118,7 +118,7 @@ void VideoCalibrationThread::processImage(const cv::Mat &input_image) {
             m_ObjectPoints.push_back(object_points);
             m_ImagePoints[0].push_back(image_points[0]);
             m_ImagePoints[1].push_back(image_points[1]);
-            m_ui->CaptureList->addItem(new QListWidgetItem(icon, tr("%1x%2, %3 mm").arg(pattern_cols).arg(pattern_rows).arg(dimmension)));
+            m_ui->CaptureList->addItem(new QListWidgetItem(icon, tr("%1x%2, %3 mm").arg(pattern_cols).arg(pattern_rows).arg(dimmension * 1000)));
         }
     }
 

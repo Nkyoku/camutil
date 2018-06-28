@@ -36,6 +36,7 @@
     <ClCompile Include="source\videothread\calibration.cpp" />
     <ClCompile Include="source\videothread\fielddetector.cpp" />
     <ClCompile Include="source\videothread\gradient.cpp" />
+    <ClCompile Include="source\videothread\line_stereo.cpp" />
     <ClCompile Include="source\videothread\preview.cpp" />
     <ClCompile Include="source\videothread\stereo.cpp" />
   </ItemGroup>
@@ -79,6 +80,12 @@
     <ClInclude Include="source\algorithm\undistort.h" />
     <ClInclude Include="source\algorithm\weighted_linear_regression.h" />
     <ClInclude Include="source\qtmat.h" />
+    <QtMoc Include="source\videothread\line_stereo.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\app\opencv-3.4.1\build\include;.\GeneratedFiles;.\source;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtOpenGL</IncludePath>
+      <Define Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE;WIN32;WIN64;QT_DLL;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_OPENGL_LIB</Define>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\app\opencv-3.4.1\build\include;.\GeneratedFiles;.\source;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtOpenGL</IncludePath>
+      <Define Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;_UNICODE;WIN32;WIN64;QT_DLL;QT_NO_DEBUG;NDEBUG;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_OPENGL_LIB</Define>
+    </QtMoc>
     <QtMoc Include="source\videothread\gradient.h">
       <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\app\opencv-3.4.1\build\include;.\GeneratedFiles;.\source;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName)\.;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtOpenGL</IncludePath>
       <Define Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE;WIN32;WIN64;QT_DLL;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_OPENGL_LIB</Define>

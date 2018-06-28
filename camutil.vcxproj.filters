@@ -115,6 +115,9 @@
     <ClCompile Include="source\algorithm\gradient_based_stereo_matching.cpp">
       <Filter>Source Files\algorithm</Filter>
     </ClCompile>
+    <ClCompile Include="source\videothread\line_stereo.cpp">
+      <Filter>Source Files\videothread</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="source\videothread\calibration.h">
@@ -148,6 +151,9 @@
       <Filter>Source Files</Filter>
     </QtMoc>
     <QtMoc Include="source\videothread\gradient.h">
+      <Filter>Source Files\videothread</Filter>
+    </QtMoc>
+    <QtMoc Include="source\videothread\line_stereo.h">
       <Filter>Source Files\videothread</Filter>
     </QtMoc>
   </ItemGroup>

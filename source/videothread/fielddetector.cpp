@@ -11,7 +11,6 @@ VideoFieldDetectorThread::VideoFieldDetectorThread(VideoInput *video_input)
     : VideoThread(video_input)
 {
     new(&m_EnhancementFilter) EnhancementFilter(kScaleFactor, 5);
-    
 }
 
 VideoFieldDetectorThread::~VideoFieldDetectorThread(){
@@ -39,7 +38,7 @@ void VideoFieldDetectorThread::initialize(QWidget *parent) {
         connect(this, &VideoThread::update, m_Output[index], QOverload<>::of(&QWidget::update), Qt::QueuedConnection);
     }
 
-    //m_Output[0]->convertBgrToRgb();
+    m_Output[0]->convertBgrToRgb();
     //m_Output[1]->convertBgrToRgb();
 
     //m_Output[1]->useMouse();
@@ -63,7 +62,7 @@ void VideoFieldDetectorThread::saveSettings(QSettings &settings) const {
 void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     int width = input_image.cols / 2;
     int height = input_image.rows;
-    
+
     m_Undistort.undistort(cv::Mat(input_image, cv::Rect(0, 0, width, height)), m_ColorImage[0], 0);
     m_Undistort.undistort(cv::Mat(input_image, cv::Rect(width, 0, width, height)), m_ColorImage[1], 1);
 
@@ -72,22 +71,22 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     cv::cvtColor(m_ColorImage[1], m_GrayscaleImage[1], cv::COLOR_BGR2GRAY);
     m_Stereo.precompute(m_GrayscaleImage[0], m_GrayscaleImage[1]);
 
-    m_Stereo.compute(m_DisparityMap, 32);
     cv::Mat disparity_map, disparity_map_color;
+    m_Stereo.compute(m_DisparityMap, 32);
     m_DisparityMap.convertTo(disparity_map, CV_8U, 8.0);
     cv::cvtColor(disparity_map, disparity_map_color, cv::COLOR_GRAY2RGB);
 
     // 画像に強調フィルタを掛けL*a*b*に変換する
     m_EnhancementFilter.compute(m_ColorImage[0], m_EnhancedColorImage);
-    cv::cvtColor(m_EnhancedColorImage, m_LabEnhancedImage, cv::COLOR_BGR2Lab);
+    cv::cvtColor(m_ColorImage[0], m_LabEnhancedImage, cv::COLOR_BGR2Lab);
     cv::cvtColor(m_EnhancementFilter.medianedImage(), m_LabMedianedImage, cv::COLOR_BGR2Lab);
 
     // 芝の検知を行う
     // 強調フィルタの処理過程で出た中間値画像を利用して白線を除く
-    //cv::Mat green_display(height, width, CV_8UC3);
+    cv::Mat green_display(height, width, CV_8UC3);
     std::vector<cv::Range> ranges;
     const cv::Mat &green = m_FieldDetector.detectGrass(m_LabMedianedImage, &ranges, kScaleFactor);
-    /*for (int y = 0; y < height; y++) {
+    for (int y = 0; y < height; y++) {
         int start_x = ranges[y].start;
         int end_x = ranges[y].end;
         if (start_x != end_x) {
@@ -111,7 +110,7 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
         } else {
             memset(green_display.ptr(y), 0, 3 * width);
         }
-    }*/
+    }
 
     // 白線の検知を行う
     std::vector<cv::Vec4f> line_segments;
@@ -235,6 +234,23 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
         cv::line(m_UnrollImage, cv::Point(points2d[0].x, points2d[0].y), cv::Point(points2d[1].x, points2d[1].y), cv::Scalar(255, 0, 0), 4);
         cv::line(m_UnrollImage, cv::Point(points2d[0].x, points2d[0].y), cv::Point(points2d[2].x, points2d[2].y), cv::Scalar(0, 255, 0), 4);
         cv::line(m_UnrollImage, cv::Point(points2d[0].x, points2d[0].y), cv::Point(points2d[3].x, points2d[3].y), cv::Scalar(0, 128, 255), 4);
+    }
+
+    // 3次元線分を描画する
+    {
+        std::vector<cv::Point3f> world_points(2 * m_PositionTracker.m_LineSegmentCentroids.size());
+        std::vector<cv::Point2f> image_points;
+        for (int i = 0; i < static_cast<int>(m_PositionTracker.m_LineSegmentCentroids.size()); i++) {
+            world_points[2 * i + 0] = m_PositionTracker.m_LineSegmentCentroids[i] - m_PositionTracker.m_LineSegmentVectors[i];
+            world_points[2 * i + 1] = m_PositionTracker.m_LineSegmentCentroids[i] + m_PositionTracker.m_LineSegmentVectors[i];
+        }
+        m_Undistort.projectPointsTo2D(world_points, image_points);
+        for (int i = 0; i < static_cast<int>(image_points.size() / 2); i++) {
+            cv::line(m_WhiteLineImage, image_points[2 * i], image_points[2 * i + 1], cv::Scalar(0, 128, 255), 4);
+        }
+        for (int i = 0; i < static_cast<int>(image_points.size() / 2); i++) {
+            cv::putText(m_WhiteLineImage, cv::format("%.4f", m_PositionTracker.m_LineSegmentLikelihood[i]), (image_points[2 * i] + image_points[2 * i + 1]) / 2 + cv::Point2f(8, 0), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 255), 1);
+        }
     }
 
     //m_Output[0]->setImage(m_ColorImage[0]);

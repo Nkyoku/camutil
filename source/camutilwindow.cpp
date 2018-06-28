@@ -6,6 +6,7 @@
 #include "videothread/stereo.h"
 #include "videothread/fielddetector.h"
 #include "videothread/gradient.h"
+#include "videothread/line_stereo.h"
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QSettings>
@@ -30,6 +31,7 @@ CamUtilWindow::CamUtilWindow(QWidget *parent)
     addTabPage(new VideoStereoThread(&m_VideoInput));
     addTabPage(new VideoFieldDetectorThread(&m_VideoInput));
     addTabPage(new VideoGradientThread(&m_VideoInput));
+    addTabPage(new VideoLineStereoThread(&m_VideoInput));
 
     connect(m_ui->SourceSelect, &QPushButton::clicked, &m_SourceDialog, &QDialog::exec);
 	connect(m_ui->SourceOpen, &QPushButton::clicked, this, &CamUtilWindow::openSource);

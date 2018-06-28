@@ -7,15 +7,22 @@ public:
     // コンストラクタ
     Undistort(void);
 
-    // 補正情報を読み込む
+    // カメラ解像度を指定して補正情報を読み込む
+    // 読み込みに失敗した場合でも現在の補正情報は失われる
     bool load(int width, int height);
 
     // 現在の補正情報を保存する
     bool save(void);
 
-    // キャリブレーションが行われているか取得する
-    bool isCalibrated(void) const {
-        return m_IsCalibrated;
+    // カメラ単体のキャリブレーションが行われているか取得する
+    // side==0で左カメラ、side==1で右カメラについて取得する
+    bool isCalibrated(bool side) const {
+        return m_IsCalibrated[side];
+    }
+
+    // ステレオ平行化が行われているか取得する
+    bool isStereoRectified(void) const {
+        return m_IsStereoRectified;
     }
 
     // 補正を行う
@@ -25,7 +32,7 @@ public:
 
     // 補正を行う
     // side==0で左カメラ、side==1で右カメラの補正を行う
-    // 補正が行われないとき、empty_if_uncalibrated==falseであればオリジナルの画像を返し、trueであれば空のMatを返す
+    // 補正が行われないとき、empty_if_uncalibrated==falseであればオリジナルの画像を返し、trueであれば空のcv::Matを返す
     cv::Mat undistort(const cv::Mat &distorted_image, int side, bool empty_if_uncalibrated = false) const;
 
     // 視差マップから実空間の座標マップを計算する
@@ -37,8 +44,13 @@ public:
     // 実空間の座標からカメラに投影される座標を計算する
     bool projectPointsTo2D(const std::vector<cv::Point3f> &points3d, std::vector<cv::Point2f> &points2d, int side = 0) const;
 
-    // キャリブレーション結果から補正マップを生成する
-    bool calibrate(int width, int height, const std::vector<std::vector<cv::Point3f>> &object_points, const std::vector<std::vector<cv::Point2f>> &image_points_left, const std::vector<std::vector<cv::Point2f>> &image_points_right);
+    // チェスボードのパターンからカメラ単体のキャリブレーションを行う
+    // side==0で左カメラ、side==1で右カメラについて行う
+    bool calibrate(int side, int width, int height, const std::vector<std::vector<cv::Point3f>> &object_points, const std::vector<std::vector<cv::Point2f>> &image_points);
+
+    // チェスボードのパターンからステレオ平行化を行う
+    // 事前にカメラ単体のキャリブレーションが完了している必要がある
+    bool stereoRectify(int width, int height, const std::vector<std::vector<cv::Point3f>> &object_points, const std::vector<std::vector<cv::Point2f>> &image_points_left, const std::vector<std::vector<cv::Point2f>> &image_points_right);
 
     // 補正情報を破棄する
     void destroy(void);
@@ -53,14 +65,25 @@ public:
 		return m_Height;
 	}
 
-    // カメラ行列を取得する
+    // 各カメラのカメラ行列(3x3)を取得する
     const cv::Mat& cameraMatrix(int side) const {
         return m_CameraMatrix[side];
     }
 
+    // 各カメラのプロジェクション行列(4x3)を取得する
+    const cv::Mat& projectionMatrix(int side) const {
+        return m_ProjectionMatrix[side];
+    }
+
+    // カメラのベースライン長を取得する
+    double baselineLength(void) const;
+
 private:
-    // キャリブレーションが完了している
-    bool m_IsCalibrated = false;
+    // 単体キャリブレーションが完了している
+    bool m_IsCalibrated[2] = { false, false };
+
+    // ステレオ平行化が完了している
+    bool m_IsStereoRectified = false;
 
     // 解像度
     int m_Width = 0, m_Height = 0;
@@ -80,11 +103,20 @@ private:
     // 偏差と深度の変換行列
     cv::Mat m_DisparityMatrix;
 
+    // 2つのカメラの回転行列
+    cv::Mat m_RotationMatrix;
+
+    // 2つのカメラの並進ベクトル
+    cv::Mat m_TranslationVector;
+
     // 歪み補正マップ
     cv::Mat m_Map1[2], m_Map2[2];
 
-    // 補正行列から歪み補正マップを生成する
-    void generateMap(const cv::Size &size);
+    // カメラ単体の歪み補正マップを生成する
+    void generateMap(int side, const cv::Size &size);
+
+    // ステレオの歪み補正マップを生成する
+    void generateMapStereo(const cv::Size &size);
 
     // 解像度に応じた補正情報ファイル名を生成する
     static std::string generateFileName(int width, int height);

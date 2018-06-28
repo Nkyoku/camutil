@@ -55,17 +55,28 @@ void VideoThread::doWork(void){
         bool force_fps_limitter = false;
         if (m_VideoInput->readFrame(input_image) == false) {
             // 新しいフレームが読み込めない場合は前のフレームを返す
-            //if (input_image.empty() == true) {
+            if (input_image.empty() == true) {
                 QThread::msleep(TIMEOUT);
                 continue;
-            //}
+            }
             force_fps_limitter = true;
         }
 
         // 処理を行う
         // 前後の時刻を参照して計算時間を求める
         qint64 start_time = elapsed_timer.nsecsElapsed();
-        processImage(input_image);
+        try {
+            processImage(input_image);
+        } catch (cv::Exception &e) {
+            qDebug("An cv::Exception was occured '%s'", e.what());
+            __debugbreak();
+        } catch (std::exception &e) {
+            qDebug("An std::exception was occured '%s'", e.what());
+            __debugbreak();
+        } catch (...) {
+            qDebug("An unknown exception was occured");
+            __debugbreak();
+        }
         emit update();
         qint64 end_time = elapsed_timer.nsecsElapsed();
         m_ProcessingTime = (end_time - start_time) * 0.000000001;

@@ -24,7 +24,7 @@ const cv::Mat& FieldDetector::detectGrass(const cv::Mat &lab_image, std::vector<
     int height = lab_image.rows;
     
     // 芝の色を検知して2値化する
-    m_BinaryGrass.create(height, width, CV_8UC1);
+    m_BinaryGrass.create(height, width, CV_8U);
     lab_image.forEach<cv::Vec3b>([&](const cv::Vec3b &value, const int pos[2]) {
         m_BinaryGrass.at<uint8_t>(pos[0], pos[1]) = isInsideLab(value[0], value[1], value[2], kDefaultGrassRegion) ? 255 : 0;
     });
@@ -207,7 +207,8 @@ const cv::Mat& FieldDetector::detectLines(const cv::Mat &lab_image, std::vector<
     lab_image.forEach<cv::Vec3b>([&](const cv::Vec3b &value, const int pos[2]) {
         const cv::Range &range = m_GrassRanges[pos[0]];
         bool inside_grass = (range.start <= pos[1]) && (pos[1] < range.end);
-        m_BinaryLines.at<uint8_t>(pos[0], pos[1]) = (inside_grass && isInsideLab(value[0], value[1], value[2], kDefaultWhiteRegion)) ? 255 : 0;
+        //m_BinaryLines.at<uint8_t>(pos[0], pos[1]) = (inside_grass && isInsideLab(value[0], value[1], value[2], kDefaultWhiteRegion)) ? 255 : 0;
+        m_BinaryLines.at<uint8_t>(pos[0], pos[1]) = inside_grass ? value[0] : 0;
     });
 
     // 線分を抽出し、長い線分を選ぶ

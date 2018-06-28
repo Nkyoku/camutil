@@ -37,6 +37,9 @@ private:
     // タブに表示するUI
     Ui_Calibration *m_ui;
 
+    // 現在のキャリブレーションステップ
+    int m_CalibrationStep = 0;
+
     // 撮影が行える猶予フレーム数
     int m_CaptureCounter = 0;
 
@@ -51,6 +54,9 @@ private:
 
     // 表示画像
     ImageViewGl *m_Original[2], *m_Undistorted[2];
+
+    // キャリブレーションステップを変更する
+    Q_SLOT void changeCalibrationStep(int step);
 
     // 取得した点群情報を破棄する
     Q_SLOT void clearAllPoints(void);

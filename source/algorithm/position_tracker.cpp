@@ -60,16 +60,32 @@ void PositionTracker::unsetKnownRollAndPitchAngle(void) {
 double PositionTracker::estimateFieldPlane(const std::vector<cv::Vec4f> &line_segments, const GradientBasedStereoMatching &stereo, const Undistort &undistort, cv::Point3d *field_centroid, cv::Point3d *field_normal) {
 	int width = undistort.width();
 	int height = undistort.height();
-	
+    std::mt19937 mt;
+
+    // 長い線分を分割する
+    /*m_VerticalLineSegments.clear();
+    for (const cv::Vec4f &segment : line_segments) {
+        cv::Point2d start(segment[0], segment[1]);
+        cv::Point2d vector(segment[2] - segment[0], segment[3] - segment[1]);
+        int n = static_cast<int>(floor(std::max(abs(vector.x), abs(vector.y)) / 64.0));
+        vector *= 1.0 / n;
+        for (int i = 0; i < n; i++) {
+            cv::Point2d end = start + vector;
+            m_VerticalLineSegments.push_back(cv::Vec4f(start.x, start.y, end.x, end.y));
+            start = end;
+        }
+    }*/
+    m_VerticalLineSegments = line_segments;
+
 	// 垂直に近い(明らかに水平でない)線分を抽出する
-	m_VerticalLineSegments.clear();
+	/*m_VerticalLineSegments.clear();
 	for (const cv::Vec4f &segment : line_segments) {
 		cv::Point2d vector(segment[2] - segment[0], segment[3] - segment[1]);
 		double cos_theta = vector.x / sqrt(vector.x * vector.x + vector.y * vector.y);
 		if (abs(cos_theta) < kHorizontalCosAngle){
 			m_VerticalLineSegments.push_back(segment);
 		}
-	}
+	}*/
     if (m_VerticalLineSegments.size() < 3) {
         // 平面推定を行うにはデータが足りない
         return 1.0;
@@ -88,6 +104,68 @@ double PositionTracker::estimateFieldPlane(const std::vector<cv::Vec4f> &line_se
 	stereo.compute(m_DisparitiesOfPoints, kMaximumDisparity);
 	undistort.reprojectPointsTo3D(m_DisparitiesOfPoints, m_Points3d);
 
+    // 各線分の3次元ベクトルをRANSACとPCAによって推定する
+    std::vector<cv::Point3f> selected_points3d;
+    std::vector<cv::Point3f> selected_disparities;
+    {
+        m_LineSegmentCentroids.resize(m_VerticalLineSegments.size());
+        m_LineSegmentVectors.resize(m_VerticalLineSegments.size());
+        m_LineSegmentLikelihood.resize(m_VerticalLineSegments.size());
+        int start = 0;
+        cv::Mat sample_points(8, 3, CV_32F);
+        for (int segment_index = 0; segment_index < static_cast<int>(m_VerticalLineSegments.size()); segment_index++) {
+            int num_of_points = m_NumberOfPointsOnLines[segment_index];
+            int num_of_samples = std::min(8, num_of_points / 2);
+            int num_of_trials = -1.0 / log10(1.0 - pow(0.75, num_of_samples));
+            double min_error = std::numeric_limits<double>::max();
+            double axial_ratio = 0.0;
+            for (int trial = 0; trial < num_of_trials; trial++) {
+                for (int i = 0; i < num_of_samples; i++) {
+                    const cv::Point3f &point = m_Points3d[start + (mt() % num_of_points)];
+                    sample_points.at<float>(i, 0) = point.x;
+                    sample_points.at<float>(i, 1) = point.y;
+                    sample_points.at<float>(i, 2) = point.z;
+                }
+                cv::PCA pca(cv::Mat(sample_points, cv::Rect(0, 0, 3, num_of_samples)), cv::Mat(), cv::PCA::DATA_AS_ROW, 3);
+                cv::Point3d mean, vector;
+                mean.x = pca.mean.at<float>(0, 0);
+                mean.y = pca.mean.at<float>(0, 1);
+                mean.z = pca.mean.at<float>(0, 2);
+                vector.x = pca.eigenvectors.at<float>(0, 0);
+                vector.y = pca.eigenvectors.at<float>(0, 1);
+                vector.z = pca.eigenvectors.at<float>(0, 2);
+                axial_ratio = pca.eigenvalues.at<float>(0) / pca.eigenvalues.at<float>(1);
+
+                double error = 0.0;
+                for (int i = 0; i < num_of_points; i++) {
+                    cv::Point3d point = m_Points3d[start + i];
+                    cv::Point3d cross = vector.cross(point - mean);
+                    double distance = sqrt(cross.x * cross.x + cross.y * cross.y + cross.z * cross.z);
+                    error += pow(std::min(distance, kRansacThreshold), 2);
+                }
+                if (error < min_error) {
+                    min_error = error;
+                    m_LineSegmentCentroids[segment_index] = mean;
+                    m_LineSegmentVectors[segment_index] = vector;
+                    m_LineSegmentLikelihood[segment_index] = error / (num_of_points * pow(kRansacThreshold, 2));
+                }
+            }
+            if (m_LineSegmentLikelihood[segment_index] < 0.125) {
+                selected_points3d.reserve(selected_points3d.size() + num_of_points);
+                selected_disparities.reserve(selected_points3d.size() + num_of_points);
+                for (int i = 0; i < num_of_points; i++) {
+                    selected_points3d.push_back(m_Points3d[start + i]);
+                    selected_disparities.push_back(m_DisparitiesOfPoints[start + i]);
+                }
+            }
+            m_LineSegmentLikelihood[segment_index] = axial_ratio;
+            start += num_of_points;
+        }
+    }
+    if (selected_points3d.empty() == true) {
+        return 1.0;
+    }
+
     // 既知のロール角とピッチ角が与えられているときはそこから法線ベクトルを計算する
     cv::Point3d known_normal;
     if (m_IsKnownRollAndPitchAngleProvided == true) {
@@ -98,19 +176,18 @@ double PositionTracker::estimateFieldPlane(const std::vector<cv::Vec4f> &line_se
     }
 
 	// RANSACによって平面を推定する
-	std::mt19937 mt;
-	cv::Mat sample_points(kNumberOfRansacSamples, 3, CV_32F);
+    cv::Mat sample_points(kNumberOfRansacSamples, 3, CV_32F);
     std::vector<cv::Point3f> used_points(kNumberOfRansacSamples);
     double min_error = std::numeric_limits<double>::max();
 	for (int trial = 0; trial < kRansacTrials; trial++) {
         // kNumberOfRansacSamples個のサンプルを選ぶ
 		for (int i = 0; i < kNumberOfRansacSamples; i++) {
-			int sample_index = mt() % static_cast<int>(m_Points3d.size());
-			const cv::Point3f &point = m_Points3d[sample_index];
+			int sample_index = mt() % static_cast<int>(selected_points3d.size());
+			const cv::Point3f &point = selected_points3d[sample_index];
 			sample_points.at<float>(i, 0) = point.x;
             sample_points.at<float>(i, 1) = point.y;
             sample_points.at<float>(i, 2) = point.z;
-            used_points[i] = m_DisparitiesOfPoints[sample_index];
+            used_points[i] = selected_disparities[sample_index];
 		}
 
 		// PCAによって重心と固有ベクトルを計算する
@@ -130,7 +207,7 @@ double PositionTracker::estimateFieldPlane(const std::vector<cv::Vec4f> &line_se
 
 		// 平面からの距離の2乗の合計が最小のものを選ぶ
         double error = 0.0;
-		for (const cv::Point3f &point : m_Points3d) {
+		for (const cv::Point3f &point : selected_points3d) {
 			double distance = abs((cv::Point3d(point) - mean).dot(normal));
             error += pow(std::min(distance, kRansacThreshold), 2);
 		}

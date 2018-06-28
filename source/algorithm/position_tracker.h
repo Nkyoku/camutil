@@ -46,6 +46,10 @@ public:
 	cv::Mat m_PCAEigenVectors;
 	cv::Mat m_PCAEigenValues;
     std::vector<cv::Point3f> m_UsedPoints;
+
+    std::vector<cv::Point3f> m_LineSegmentCentroids;
+    std::vector<cv::Point3f> m_LineSegmentVectors;
+    std::vector<double> m_LineSegmentLikelihood;
 private:
 	// 視差の最大値
 	static constexpr int kMaximumDisparity = 64;
@@ -54,7 +58,7 @@ private:
 	static constexpr double kHorizontalCosAngle = 63.0 / 64.0;
 
 	// RANSACに使用するサンプル数
-	static constexpr int kNumberOfRansacSamples = 64;
+	static constexpr int kNumberOfRansacSamples = 32;
 
 	// RANSACの試行回数
 	static constexpr int kRansacTrials = 128;

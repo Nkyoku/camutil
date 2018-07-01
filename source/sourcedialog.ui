@@ -245,6 +245,17 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>Tab</tabstop>
+  <tabstop>UvcId</tabstop>
+  <tabstop>UvcResolution</tabstop>
+  <tabstop>UvcFramerate</tabstop>
+  <tabstop>MoviePath</tabstop>
+  <tabstop>MoviePathOpen</tabstop>
+  <tabstop>SequencePath</tabstop>
+  <tabstop>SequencePathOpen</tabstop>
+  <tabstop>SequenceFramerate</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

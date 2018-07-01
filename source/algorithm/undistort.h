@@ -12,7 +12,8 @@ public:
     bool load(int width, int height);
 
     // 現在の補正情報を保存する
-    bool save(void);
+    // new_width,new_heightに値を指定するとカメラ行列がその解像度に変換されて保存される
+    bool save(int new_width = 0, int new_height = 0);
 
     // カメラ単体のキャリブレーションが行われているか取得する
     // side==0で左カメラ、side==1で右カメラについて取得する
@@ -52,6 +53,9 @@ public:
     // 事前にカメラ単体のキャリブレーションが完了している必要がある
     bool stereoRectify(int width, int height, const std::vector<std::vector<cv::Point3f>> &object_points, const std::vector<std::vector<cv::Point2f>> &image_points_left, const std::vector<std::vector<cv::Point2f>> &image_points_right);
 
+    // ステレオ平行化の微調整を行う
+    bool adjustRectification(double roll, double pitch);
+
     // 補正情報を破棄する
     void destroy(void);
 
@@ -78,6 +82,12 @@ public:
     // カメラのベースライン長を取得する
     double baselineLength(void) const;
 
+    // 角度調整パラメータを取得する
+    void adjustmentParameters(double *roll, double *pitch) const {
+        *roll = m_RollAdjustment;
+        *pitch = m_PitchAdjustment;
+    }
+
 private:
     // 単体キャリブレーションが完了している
     bool m_IsCalibrated[2] = { false, false };
@@ -88,11 +98,14 @@ private:
     // 解像度
     int m_Width = 0, m_Height = 0;
 
+    // カメラの角度調整パラメータ
+    double m_RollAdjustment = 0.0, m_PitchAdjustment = 0.0;
+
     // カメラの内部パラメータ行列
-    cv::Mat m_CameraMatrix[2];
+    cv::Mat m_RawCameraMatrix[2], m_CameraMatrix[2];
 
     // 歪み係数
-    cv::Mat m_DistortionCoefficients[2];
+    cv::Mat m_RawDistortionCoefficients[2], m_DistortionCoefficients[2];
 
     // 平行化変換行列
     cv::Mat m_RectificationMatrix[2];
@@ -113,10 +126,10 @@ private:
     cv::Mat m_Map1[2], m_Map2[2];
 
     // カメラ単体の歪み補正マップを生成する
-    void generateMap(int side, const cv::Size &size);
+    void generateMap(int side);
 
     // ステレオの歪み補正マップを生成する
-    void generateMapStereo(const cv::Size &size);
+    void generateMapStereo(void);
 
     // 解像度に応じた補正情報ファイル名を生成する
     static std::string generateFileName(int width, int height);

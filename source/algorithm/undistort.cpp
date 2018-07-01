@@ -21,14 +21,23 @@ bool Undistort::load(int width_, int height_) {
     cv::FileNode child_node[2] = { storage["Left"], storage["Right"] };
     for (int side = 0; side < 2; side++) {
         // 読み込む
+        child_node[side]["RawCameraMatrix"] >> m_RawCameraMatrix[side];
         child_node[side]["CameraMatrix"] >> m_CameraMatrix[side];
+        child_node[side]["RawDistortionCoefficients"] >> m_RawDistortionCoefficients[side];
         child_node[side]["DistortionCoefficients"] >> m_DistortionCoefficients[side];
         child_node[side]["RectificationMatrix"] >> m_RectificationMatrix[side];
         child_node[side]["ProjectionMatrix"] >> m_ProjectionMatrix[side];
 
         // サイズチェック
+        if ((m_RawCameraMatrix[side].cols != 3) || (m_RawCameraMatrix[side].rows != 3)) {
+            m_RawCameraMatrix[side] = cv::Mat();
+        }
         if ((m_CameraMatrix[side].cols != 3) || (m_CameraMatrix[side].rows != 3)) {
             m_CameraMatrix[side] = cv::Mat();
+        }
+        if ((m_RawDistortionCoefficients[side].rows != 1) ||
+            ((m_RawDistortionCoefficients[side].cols != 4) && (m_RawDistortionCoefficients[side].cols != 5) && (m_RawDistortionCoefficients[side].cols != 8))) {
+            m_RawDistortionCoefficients[side] = cv::Mat();
         }
         if ((m_DistortionCoefficients[side].rows != 1) ||
             ((m_DistortionCoefficients[side].cols != 4) && (m_DistortionCoefficients[side].cols != 5) && (m_DistortionCoefficients[side].cols != 8))) {
@@ -41,11 +50,13 @@ bool Undistort::load(int width_, int height_) {
             m_ProjectionMatrix[side] = cv::Mat();
         }
 
-        m_IsCalibrated[side] = !m_CameraMatrix[side].empty() && !m_DistortionCoefficients[side].empty();
+        m_IsCalibrated[side] = !m_RawCameraMatrix[side].empty() && !m_RawDistortionCoefficients[side].empty();
     }
     storage["DisparityMatrix"] >> m_DisparityMatrix;
     storage["RotationMatrix"] >> m_RotationMatrix;
     storage["TranslationVector"] >> m_TranslationVector;
+    storage["RollAdjustment"] >> m_RollAdjustment;
+    storage["PitchAdjustment"] >> m_PitchAdjustment;
     if ((m_DisparityMatrix.cols != 4) || (m_DisparityMatrix.rows != 4)) {
         m_DisparityMatrix = cv::Mat();
     }
@@ -57,19 +68,19 @@ bool Undistort::load(int width_, int height_) {
     }
 
     m_IsStereoRectified =
+        !m_CameraMatrix[0].empty() && !m_CameraMatrix[1].empty() &&
+        !m_DistortionCoefficients[0].empty() && !m_DistortionCoefficients[1].empty() &&
         !m_RectificationMatrix[0].empty() && !m_RectificationMatrix[1].empty() &&
         !m_ProjectionMatrix[0].empty() && !m_ProjectionMatrix[1].empty() &&
-        !m_DisparityMatrix.empty() && !m_RotationMatrix.empty() && !m_TranslationVector.empty() &&
-        m_IsCalibrated[0] && m_IsCalibrated[1];
+        !m_DisparityMatrix.empty() && !m_RotationMatrix.empty() && !m_TranslationVector.empty();
 
     // 補正マップを生成する
-    cv::Size size(m_Width, m_Height);
     if (m_IsStereoRectified == true) {
-        generateMapStereo(size);
+        generateMapStereo();
     } else {
         for (int side = 0; side < 2; side++) {
             if (m_IsCalibrated[side] == true) {
-                generateMap(side, size);
+                generateMap(side);
             }
         }
     }
@@ -77,13 +88,21 @@ bool Undistort::load(int width_, int height_) {
     return true;
 }
 
-bool Undistort::save(void) {
+bool Undistort::save(int new_width, int new_height) {
     // いずれのキャリブレーションも行われていない場合は保存を行わない
     if (!m_IsCalibrated[0] && !m_IsCalibrated[1] && !m_IsStereoRectified) {
         return false;
     }
 
-    cv::FileStorage storage(generateFileName(m_Width, m_Height), cv::FileStorage::WRITE);
+    // スケーリング係数を計算
+    if ((new_width <= 0) || (new_height <= 0)) {
+        new_width = m_Width;
+        new_height = m_Height;
+    }
+    double scale_x = static_cast<double>(new_width) / m_Width;
+    double scale_y = static_cast<double>(new_height) / m_Height;
+
+    cv::FileStorage storage(generateFileName(new_width, new_height), cv::FileStorage::WRITE);
     if (storage.isOpened() == false) {
         return false;
     }
@@ -91,12 +110,29 @@ bool Undistort::save(void) {
     for (int side = 0; side < 2; side++) {
         storage << ((side == 0) ? "Left" : "Right") << "{";
         if (m_IsCalibrated[side] == true) {
-            storage << "CameraMatrix" << m_CameraMatrix[side];
-            storage << "DistortionCoefficients" << m_DistortionCoefficients[side];
+            cv::Mat raw_camera_matrix = m_RawCameraMatrix[side].clone();
+            raw_camera_matrix.at<double>(0, 0) *= scale_x;
+            raw_camera_matrix.at<double>(0, 2) *= scale_x;
+            raw_camera_matrix.at<double>(1, 1) *= scale_y;
+            raw_camera_matrix.at<double>(1, 2) *= scale_y;
+            storage << "RawCameraMatrix" << raw_camera_matrix;
+            storage << "RawDistortionCoefficients" << m_RawDistortionCoefficients[side];
         }
         if (m_IsStereoRectified == true) {
+            cv::Mat camera_matrix = m_CameraMatrix[side].clone();
+            cv::Mat projection_matrix = m_ProjectionMatrix[side].clone();
+            camera_matrix.at<double>(0, 0) *= scale_x;
+            camera_matrix.at<double>(0, 2) *= scale_x;
+            camera_matrix.at<double>(1, 1) *= scale_y;
+            camera_matrix.at<double>(1, 2) *= scale_y;
+            projection_matrix.at<double>(0, 0) *= scale_x;
+            projection_matrix.at<double>(0, 2) *= scale_x;
+            projection_matrix.at<double>(1, 1) *= scale_y;
+            projection_matrix.at<double>(1, 2) *= scale_y;
+            storage << "CameraMatrix" << camera_matrix;
+            storage << "DistortionCoefficients" << m_DistortionCoefficients[side];
             storage << "RectificationMatrix" << m_RectificationMatrix[side];
-            storage << "ProjectionMatrix" << m_ProjectionMatrix[side];
+            storage << "ProjectionMatrix" << projection_matrix;
         }
         storage << "}";
     }
@@ -104,6 +140,8 @@ bool Undistort::save(void) {
         storage << "DisparityMatrix" << m_DisparityMatrix;
         storage << "RotationMatrix" << m_RotationMatrix;
         storage << "TranslationVector" << m_TranslationVector;
+        storage << "RollAdjustment" << m_RollAdjustment;
+        storage << "PitchAdjustment" << m_PitchAdjustment;
     }
 
     return true;
@@ -168,9 +206,11 @@ bool Undistort::calibrate(int side, int width_, int height_, const std::vector<s
     }
 
     std::vector<cv::Mat> rvecs, tvecs;
-    cv::calibrateCamera(object_points, image_points, size, m_CameraMatrix[side], m_DistortionCoefficients[side], rvecs, tvecs);
-    
-    generateMap(side, size);
+    cv::calibrateCamera(object_points, image_points, size, m_RawCameraMatrix[side], m_RawDistortionCoefficients[side], rvecs, tvecs);
+    m_CameraMatrix[side] = cv::Mat();
+    m_DistortionCoefficients[side] = cv::Mat();
+
+    generateMap(side);
 
     m_IsCalibrated[side] = true;
     m_IsStereoRectified = false;
@@ -186,23 +226,36 @@ bool Undistort::stereoRectify(int width_, int height_, const std::vector<std::ve
     if (!m_IsCalibrated[0] || !m_IsCalibrated[1]) {
         return false;
     }
-
-    cv::Size size(width_, height_);
     if ((m_Width != width_) || (m_Height != height_)) {
-        m_Width = width_;
-        m_Height = height_;
-        destroy();
+        return false;
     }
 
+    cv::Size size(width_, height_);
     cv::Mat E, F;
+    m_RawCameraMatrix[0].copyTo(m_CameraMatrix[0]);
+    m_RawCameraMatrix[1].copyTo(m_CameraMatrix[1]);
+    m_RawDistortionCoefficients[0].copyTo(m_DistortionCoefficients[0]);
+    m_RawDistortionCoefficients[1].copyTo(m_DistortionCoefficients[1]);
     cv::stereoCalibrate(object_points, image_points_left, image_points_right, m_CameraMatrix[0], m_DistortionCoefficients[0], m_CameraMatrix[1], m_DistortionCoefficients[1], size, m_RotationMatrix, m_TranslationVector, E, F, cv::CALIB_USE_INTRINSIC_GUESS);
 
-    cv::stereoRectify(m_CameraMatrix[0], m_DistortionCoefficients[0], m_CameraMatrix[1], m_DistortionCoefficients[1], size, m_RotationMatrix, m_TranslationVector, m_RectificationMatrix[0], m_RectificationMatrix[1], m_ProjectionMatrix[0], m_ProjectionMatrix[1], m_DisparityMatrix, cv::CALIB_ZERO_DISPARITY, 0.0);
+    cv::stereoRectify(m_CameraMatrix[0], m_DistortionCoefficients[0], m_CameraMatrix[1], m_DistortionCoefficients[1], size, m_RotationMatrix, m_TranslationVector, m_RectificationMatrix[0], m_RectificationMatrix[1], m_ProjectionMatrix[0], m_ProjectionMatrix[1], m_DisparityMatrix, cv::CALIB_ZERO_DISPARITY);
 
-    generateMapStereo(size);
+    m_RollAdjustment = 0.0;
+    m_PitchAdjustment = 0.0;
+    generateMapStereo();
 
     m_IsStereoRectified = true;
 
+    return true;
+}
+
+bool Undistort::adjustRectification(double roll, double pitch) {
+    if (m_IsStereoRectified == false) {
+        return false;
+    }
+    m_RollAdjustment = roll;
+    m_PitchAdjustment = pitch;
+    generateMapStereo();
     return true;
 }
 
@@ -211,7 +264,9 @@ void Undistort::destroy(void) {
     m_IsCalibrated[1] = false;
     m_IsStereoRectified = false;
     for (int side = 0; side < 2; side++) {
+        m_RawCameraMatrix[side] = cv::Mat();
         m_CameraMatrix[side] = cv::Mat();
+        m_RawDistortionCoefficients[side] = cv::Mat();
         m_DistortionCoefficients[side] = cv::Mat();
         m_RectificationMatrix[side] = cv::Mat();
         m_ProjectionMatrix[side] = cv::Mat();
@@ -221,6 +276,8 @@ void Undistort::destroy(void) {
     m_DisparityMatrix = cv::Mat();
     m_RotationMatrix = cv::Mat();
     m_TranslationVector = cv::Mat();
+    m_RollAdjustment = 0.0;
+    m_PitchAdjustment = 0.0;
 }
 
 double Undistort::baselineLength(void) const {
@@ -231,13 +288,29 @@ double Undistort::baselineLength(void) const {
     }
 }
 
-void Undistort::generateMap(int side, const cv::Size &size) {
-    cv::initUndistortRectifyMap(m_CameraMatrix[side], m_DistortionCoefficients[side], cv::Mat(), m_CameraMatrix[side], size, CV_32FC1, m_Map1[side], m_Map2[side]);
+void Undistort::generateMap(int side) {
+    cv::initUndistortRectifyMap(m_RawCameraMatrix[side], m_RawDistortionCoefficients[side], cv::Mat(), m_RawCameraMatrix[side], cv::Size(m_Width, m_Height), CV_32FC1, m_Map1[side], m_Map2[side]);
 }
 
-void Undistort::generateMapStereo(const cv::Size &size) {
+void Undistort::generateMapStereo(void) {
+    cv::Size size(m_Width, m_Height);
+
+    double pitch_matrix_data[9] = {
+        1.0, 0.0, 0.0,
+        0.0, cos(m_PitchAdjustment), -sin(m_PitchAdjustment),
+        0.0, sin(m_PitchAdjustment), cos(m_PitchAdjustment)
+    };
+    cv::Mat pitch_matrix(3, 3, CV_64F, pitch_matrix_data);
+    double roll_matrix_data[9] = {
+        cos(m_RollAdjustment), -sin(m_RollAdjustment), 0.0,
+        sin(m_RollAdjustment), cos(m_RollAdjustment), 0.0,
+        0.0, 0.0, 1.0
+    };
+    cv::Mat roll_matrix(3, 3, CV_64F, roll_matrix_data);
+    cv::Mat new_rotation = pitch_matrix * roll_matrix * m_RectificationMatrix[1];
+
     cv::initUndistortRectifyMap(m_CameraMatrix[0], m_DistortionCoefficients[0], m_RectificationMatrix[0], m_ProjectionMatrix[0], size, CV_32FC1, m_Map1[0], m_Map2[0]);
-    cv::initUndistortRectifyMap(m_CameraMatrix[1], m_DistortionCoefficients[1], m_RectificationMatrix[1], m_ProjectionMatrix[1], size, CV_32FC1, m_Map1[1], m_Map2[1]);
+    cv::initUndistortRectifyMap(m_CameraMatrix[1], m_DistortionCoefficients[1], new_rotation, m_ProjectionMatrix[1], size, CV_32FC1, m_Map1[1], m_Map2[1]);
 }
 
 std::string Undistort::generateFileName(int width_, int height_) {

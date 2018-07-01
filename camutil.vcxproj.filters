@@ -118,6 +118,12 @@
     <ClCompile Include="source\videothread\line_stereo.cpp">
       <Filter>Source Files\videothread</Filter>
     </ClCompile>
+    <ClCompile Include="source\videothread\calibration_convert.cpp">
+      <Filter>Source Files\videothread</Filter>
+    </ClCompile>
+    <ClCompile Include="source\videothread\auto_adjustment.cpp">
+      <Filter>Source Files\videothread</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="source\videothread\calibration.h">
@@ -156,6 +162,12 @@
     <QtMoc Include="source\videothread\line_stereo.h">
       <Filter>Source Files\videothread</Filter>
     </QtMoc>
+    <QtMoc Include="source\videothread\calibration_convert.h">
+      <Filter>Source Files\videothread</Filter>
+    </QtMoc>
+    <QtMoc Include="source\videothread\auto_adjustment.h">
+      <Filter>Source Files\videothread</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="source\sourcedialog.ui">
@@ -165,6 +177,12 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="source\videothread\calibration.ui">
+      <Filter>Form Files\videothread</Filter>
+    </QtUic>
+    <QtUic Include="source\videothread\calibration_convert.ui">
+      <Filter>Form Files\videothread</Filter>
+    </QtUic>
+    <QtUic Include="source\videothread\auto_adjustment.ui">
       <Filter>Form Files\videothread</Filter>
     </QtUic>
   </ItemGroup>

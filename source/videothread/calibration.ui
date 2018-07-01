@@ -168,9 +168,9 @@
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QPushButton" name="Clear">
+      <widget class="QPushButton" name="SaveAsDefault">
        <property name="text">
-        <string>Clear</string>
+        <string>Save as Default</string>
        </property>
       </widget>
      </item>
@@ -182,9 +182,9 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QPushButton" name="SetAsDefault">
+      <widget class="QPushButton" name="ConvertResolution">
        <property name="text">
-        <string>Set as default</string>
+        <string>Convert Resolution...</string>
        </property>
       </widget>
      </item>
@@ -192,6 +192,21 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>Step1Selection</tabstop>
+  <tabstop>Step2Selection</tabstop>
+  <tabstop>Step3Selection</tabstop>
+  <tabstop>PatternChessboard</tabstop>
+  <tabstop>PatternCircle</tabstop>
+  <tabstop>PatternColumns</tabstop>
+  <tabstop>PatternRows</tabstop>
+  <tabstop>PatternDimmension</tabstop>
+  <tabstop>CaptureList</tabstop>
+  <tabstop>Capture</tabstop>
+  <tabstop>Calibrate</tabstop>
+  <tabstop>SaveAsDefault</tabstop>
+  <tabstop>ConvertResolution</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

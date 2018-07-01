@@ -1,6 +1,7 @@
 ﻿#include "calibration.h"
 #include "../imageviewgl.h"
 #include "ui_calibration.h"
+#include "ui_calibration_convert.h"
 //#include <QtWidgets/QBoxLayout>
 //#include <QtWidgets/QGridLayout>
 //#include <QtWidgets/QLabel>
@@ -16,6 +17,8 @@ QString VideoCalibrationThread::initializeOnce(QWidget *parent) {
     m_ui = new Ui_Calibration;
     m_ui->setupUi(parent);
     m_ui->CaptureList->setIconSize(QSize(kPreviewSize, kPreviewSize));
+    m_ConvertDialog = new CalibrationConvertDialog(parent);
+    m_ConvertDialog->setModal(true);
 
     connect(m_ui->Step1Selection, &QRadioButton::clicked, this, [&](bool checked) {
         if (checked == true) {
@@ -32,13 +35,18 @@ QString VideoCalibrationThread::initializeOnce(QWidget *parent) {
             changeCalibrationStep(3);
         }
     });
-
     connect(m_ui->Capture, &QPushButton::clicked, this, [&]() {
         m_CaptureCounter = kCaptureDeadline;
     });
     connect(m_ui->Calibrate, &QPushButton::clicked, this, &VideoCalibrationThread::applyCalibration, Qt::QueuedConnection);
-    connect(m_ui->Clear, &QPushButton::clicked, this, &VideoCalibrationThread::clearAllPoints, Qt::QueuedConnection);
-    connect(m_ui->SetAsDefault, &QPushButton::clicked, this, &VideoCalibrationThread::saveCalibration, Qt::QueuedConnection);
+    connect(m_ui->SaveAsDefault, &QPushButton::clicked, this, QOverload<>::of(&VideoCalibrationThread::saveCalibration), Qt::QueuedConnection);
+    connect(m_ui->ConvertResolution, &QPushButton::clicked, m_ConvertDialog, [&](void) {
+        if (m_Undistort.isCalibrated(0) || m_Undistort.isCalibrated(1) || m_Undistort.isStereoRectified()) {
+            m_ConvertDialog->setCurrentResolution(m_Undistort.width(), m_Undistort.height());
+            m_ConvertDialog->show();
+        }
+    });
+    connect(m_ConvertDialog, &CalibrationConvertDialog::savePushed, this, QOverload<int, int>::of(&VideoCalibrationThread::saveCalibration), Qt::QueuedConnection);
 
     return tr("Calibration");
 }
@@ -81,6 +89,7 @@ void VideoCalibrationThread::uninitialize(void) {
     m_ui->Step1Status->setText(tr("Not Calibrated"));
     m_ui->Step2Status->setText(tr("Not Calibrated"));
     m_ui->Step3Status->setText(tr("Not Calibrated"));
+    m_ConvertDialog->close();
 }
 
 void VideoCalibrationThread::restoreSettings(const QSettings &settings) {
@@ -231,4 +240,8 @@ void VideoCalibrationThread::applyCalibration(void) {
 
 void VideoCalibrationThread::saveCalibration(void) {
     m_Undistort.save();
+}
+
+void VideoCalibrationThread::saveCalibration(int width, int height) {
+    m_Undistort.save(width, height);
 }

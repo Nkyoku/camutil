@@ -159,6 +159,7 @@ void VideoLineStereoThread::processImage(const cv::Mat &input_image) {
     };
     cv::Mat1f unpitch_matrix(3, 3, unpitch_matrix_data);
     cv::Mat1f roll_matrix(3, 3, roll_matrix_data);
+    cv::Point3d field_centroid(0.0, 1.0, 0.0);
     cv::Point3d field_normal;
     field_normal.x = sin(roll_angle) * cos(pitch_angle);
     field_normal.y = cos(roll_angle) * cos(pitch_angle);
@@ -170,13 +171,13 @@ void VideoLineStereoThread::processImage(const cv::Mat &input_image) {
         overlook_image[side].create(height, width, CV_8UC3);
         overlook_image[side].setTo(0);
 
-        cv::Point3d field_centroid(0.0, (side == 1) ? m_HeightInput->value() : 1.0, 0.0);
-
         cv::Mat projection_matrix = m_Undistort.projectionMatrix(side);
         double fx = projection_matrix.at<double>(0, 0);
         double cx = projection_matrix.at<double>(0, 2);
         double fy = projection_matrix.at<double>(1, 1);
         double cy = projection_matrix.at<double>(1, 2);
+
+        double shift_x = (side == 0) ? 0 : m_Undistort.baselineLength();
 
         cv::Point3f zero(0.0, 0.0, 0.0);
         std::vector<cv::Point3f> world_points(2);
@@ -190,15 +191,15 @@ void VideoLineStereoThread::processImage(const cv::Mat &input_image) {
             cv::Point3f b_world = zero - field_normal.dot(zero - cv::Point3f(field_centroid)) / field_normal.dot(vec_b_world) * vec_b_world;
             world_points[0] = (cv::Point3f)cv::Mat(unpitch_matrix * roll_matrix * cv::Mat(a_world));
             world_points[1] = (cv::Point3f)cv::Mat(unpitch_matrix * roll_matrix * cv::Mat(b_world));
-            image_points[0] = cv::Point2f(100.0 * world_points[0].x + width * 0.5, -100.0 * world_points[0].y + height);
-            image_points[1] = cv::Point2f(100.0 * world_points[1].x + width * 0.5, -100.0 * world_points[1].y + height);
+            image_points[0] = cv::Point2f(100.0 * (world_points[0].x + shift_x) + width * 0.5, -100.0 * world_points[0].y + height);
+            image_points[1] = cv::Point2f(100.0 * (world_points[1].x + shift_x) + width * 0.5, -100.0 * world_points[1].y + height);
             cv::line(overlook_image[0], image_points[0], image_points[1], (side == 0) ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 128, 255), 2);
         }
     }
 
     std::vector<cv::Vec4f> combined_segments[2];
-    //combineParallelSegments(raw_segments_inside[0], combined_segments[0], 16.0);
-    //combineParallelSegments(raw_segments_inside[1], combined_segments[1], 16.0);
+    combineParallelSegments(raw_segments_inside[0], combined_segments[0], kNeighborThresholdRatio, kNeighborThresholdWorld);
+    combineParallelSegments(raw_segments_inside[1], combined_segments[1], kNeighborThresholdRatio, kNeighborThresholdWorld);
 
     drawSegments(m_OriginalBgrImage[0], raw_segments_inside[0], cv::Scalar(0, 0, 255));
     drawSegments(m_OriginalBgrImage[1], raw_segments_inside[1], cv::Scalar(0, 0, 255));
@@ -211,7 +212,7 @@ void VideoLineStereoThread::processImage(const cv::Mat &input_image) {
     m_Output[3]->setImage(overlook_image[1]);
 }
 
-void VideoLineStereoThread::combineParallelSegments(const std::vector<cv::Vec4f> &input_segments, std::vector<cv::Vec4f> &output_segments, double threshold) {
+void VideoLineStereoThread::combineParallelSegments(const std::vector<cv::Vec4f> &input_segments, std::vector<cv::Vec4f> &output_segments, double relative_threshold, double absolute_threshold) {
     output_segments.reserve(input_segments.size());
     for (int i = 0; i < static_cast<int>(input_segments.size()); i++) {
         // 線分A
@@ -237,12 +238,20 @@ void VideoLineStereoThread::combineParallelSegments(const std::vector<cv::Vec4f>
             }
 
             // 線分同士が近いか調べる
-            if (threshold < distanceBetweenSegmentsSimple(a1, a2, b1, b2)) {
+            // 接しているものは除外する
+            double threshold = relative_threshold * std::max(length_a, length_b);
+            double simple_distance = distanceBetweenSegmentsSimple(a1, a2, b1, b2);
+            if ((threshold < simple_distance) || (absolute_threshold < simple_distance)) {
                 continue;
             }
-            if (threshold < distanceBetweenSegments(a1, a2, b1, b2)) {
+            double distance = distanceBetweenSegments(a1, a2, b1, b2);
+            if ((threshold < distance) || (absolute_threshold < distance) || (distance == 0.0)) {
                 continue;
             }
+
+            // 線分の間に他の線分が無いか調べる
+
+
 
             // 線分Cは線分A,Bの平均ベクトル
             cv::Point2d c1((a1 + b1) * 0.5);

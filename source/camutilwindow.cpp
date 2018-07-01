@@ -3,6 +3,7 @@
 #include "tabpage.h"
 //#include "videothread/preview.h"
 #include "videothread/calibration.h"
+#include "videothread/auto_adjustment.h"
 #include "videothread/stereo.h"
 #include "videothread/fielddetector.h"
 #include "videothread/gradient.h"
@@ -28,6 +29,7 @@ CamUtilWindow::CamUtilWindow(QWidget *parent)
     // タブに各VideoThreadのGUIのページを作成する
     //addTabPage(new VideoPreviewThread(&m_VideoInput));
     addTabPage(new VideoCalibrationThread(&m_VideoInput));
+    addTabPage(new VideoAutoAdjustmentThread(&m_VideoInput));
     addTabPage(new VideoStereoThread(&m_VideoInput));
     addTabPage(new VideoFieldDetectorThread(&m_VideoInput));
     addTabPage(new VideoGradientThread(&m_VideoInput));

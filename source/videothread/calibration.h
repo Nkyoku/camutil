@@ -2,15 +2,17 @@
 
 #include "videothread.h"
 #include "algorithm/undistort.h"
+#include "calibration_convert.h"
 
 QT_FORWARD_DECLARE_CLASS(Ui_Calibration);
+QT_FORWARD_DECLARE_CLASS(Ui_CalibrationConvert);
 QT_FORWARD_DECLARE_CLASS(ImageViewGl);
 
-class VideoCalibrationThread : public VideoThread{
+class VideoCalibrationThread : public VideoThread {
 	Q_OBJECT
 
 public:
-    VideoCalibrationThread(VideoInput *video_input) : VideoThread(video_input) {};
+    VideoCalibrationThread(VideoInput *video_input) : VideoThread(video_input) {}
 
     virtual ~VideoCalibrationThread();
 
@@ -36,6 +38,9 @@ private:
 
     // タブに表示するUI
     Ui_Calibration *m_ui;
+
+    // 変換ダイアログ
+    CalibrationConvertDialog *m_ConvertDialog;
 
     // 現在のキャリブレーションステップ
     int m_CalibrationStep = 0;
@@ -66,4 +71,7 @@ private:
 
     // 補正情報を保存する
     Q_SLOT void saveCalibration(void);
+
+    // 解像度を変換して補正情報を保存する
+    Q_SLOT void saveCalibration(int width, int height);
 };

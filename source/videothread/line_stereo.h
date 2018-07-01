@@ -3,6 +3,7 @@
 #include "videothread.h"
 #include "algorithm/undistort.h"
 #include "algorithm/field_detector.h"
+#include "algorithm/position_tracker.h"
 #include <opencv2/imgproc.hpp>
 #include <QtWidgets/QDoubleSpinBox>
 
@@ -33,6 +34,12 @@ private:
     // 2本の直線が平行だと見なすcosθ
     static constexpr double kParallelAngle = 255.0 / 256.0;
     
+    // 2本の直線が近いと見なす距離 (線分の長さに対する割合)
+    static constexpr double kNeighborThresholdRatio = 1.0 / 16.0;
+
+    // 2本の直線が近いと見なす距離 (実距離) [m]
+    static constexpr double kNeighborThresholdWorld = 0.25;
+
     // 歪み補正器
     Undistort m_Undistort;
 
@@ -64,7 +71,7 @@ private:
     
 
     // 平行な線分を太さを持つ線分に合成する
-    static void combineParallelSegments(const std::vector<cv::Vec4f> &input_segments, std::vector<cv::Vec4f> &output_segments, double threshold);
+    static void combineParallelSegments(const std::vector<cv::Vec4f> &input_segments, std::vector<cv::Vec4f> &output_segments, double relative_threshold, double absolute_threshold);
 
     // 画像に線分リストを描画する
     static void drawSegments(cv::Mat &image, const std::vector<cv::Vec4f> &line_segments, const cv::Scalar &color, int thickness = 1);

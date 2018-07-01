@@ -16,213 +16,46 @@ const FieldDetector::LabRegion FieldDetector::kDefaultWhiteRegion = {
 };
 
 FieldDetector::FieldDetector(void) {
-    m_Lsd = cv::createLineSegmentDetector();
+    m_Lsd = cv::createLineSegmentDetector(cv::LSD_REFINE_STD, 0.5);
 }
 
-const cv::Mat& FieldDetector::detectGrass(const cv::Mat &lab_image, std::vector<cv::Range> *ranges, int scale) {
-    int width = lab_image.cols;
-    int height = lab_image.rows;
-    
-    // 芝の色を検知して2値化する
-    m_BinaryGrass.create(height, width, CV_8U);
-    lab_image.forEach<cv::Vec3b>([&](const cv::Vec3b &value, const int pos[2]) {
-        m_BinaryGrass.at<uint8_t>(pos[0], pos[1]) = isInsideLab(value[0], value[1], value[2], kDefaultGrassRegion) ? 255 : 0;
-    });
-
-    // 垂直にスキャンする
-    std::vector<cv::Range> ranges_v(width);
-    for (int x = 0; x < width; x++) {
-        const uint8_t *ptr = m_BinaryGrass.ptr(0, x);
-
-        // 重心(幾何中心と同値)を求める
-        int centroid_int = 0;
-        int number_of_points = 0;
-        for (int y = 0; y < height; y++) {
-            if (ptr[width * y] != 0) {
-                centroid_int += y;
-                number_of_points++;
-            }
-        }
-        if (number_of_points <= kGrassNoiseRejection) {
-            ranges_v[x].start = 0;
-            ranges_v[x].end = 0;
-            continue;
-        }
-        double centroid = static_cast<double>(centroid_int) / number_of_points;
-
-        // 分散を求める
-        double variance = 0.0;
-        for (int y = 0; y < height; y++) {
-            if (ptr[width * y] != 0) {
-                variance += pow(y - centroid, 2);
-            }
-        }
-        variance /= number_of_points;
-
-        double half_width = kGrassVarianceCoefficient * 0.5 * sqrt(variance);
-        ranges_v[x].start = std::max(static_cast<int>(round(centroid - half_width)), 0);
-        ranges_v[x].end = std::min(static_cast<int>(round(centroid + half_width + 1)), width);
-    }
-
-    // 水平にスキャンする
-    m_GrassRanges.resize(scale * height);
-    for (int y = 0; y < height; y++) {
-        const uint8_t *ptr = m_BinaryGrass.ptr(y);
-
-        // 重心(幾何中心と同値)を求める
-        int centroid_int = 0;
-        int number_of_points = 0;
-        for (int x = 0; x < width; x++) {
-            if ((ptr[x] != 0) || ((ranges_v[x].start <= y) && (y < ranges_v[x].end))) {
-                centroid_int += x;
-                number_of_points++;
-            }
-        }
-        if (number_of_points <= kGrassNoiseRejection) {
-            for (int i = 0; i < scale; i++) {
-                m_GrassRanges[scale * y + i].start = 0;
-                m_GrassRanges[scale * y + i].end = 0;
-            }
-            continue;
-        }
-        double centroid = static_cast<double>(centroid_int) / number_of_points;
-
-        // 分散を求める
-        double variance = 0.0;
-        for (int x = 0; x < width; x++) {
-            if ((ptr[x] != 0) || ((ranges_v[x].start <= y) && (y < ranges_v[x].end))) {
-                variance += pow(x - centroid, 2);
-            }
-        }
-        variance /= number_of_points;
-
-        double half_width = kGrassVarianceCoefficient * 0.5 * sqrt(variance);
-        for (int i = 0; i < scale; i++) {
-            m_GrassRanges[scale * y + i].start = std::max(static_cast<int>(round((centroid - half_width) * scale)), 0);
-            m_GrassRanges[scale * y + i].end = std::min(static_cast<int>(round((centroid + half_width) * scale + 1)), scale * width);
-        }
-    }
-
-    if (ranges != nullptr) {
-        ranges->resize(m_GrassRanges.size());
-        std::copy(m_GrassRanges.begin(), m_GrassRanges.end(), ranges->begin());
-    }
-
-    return m_BinaryGrass;
-}
-
-const cv::Mat& FieldDetector::detectGrassMoment(const cv::Mat &lab_image, std::vector<cv::Range> *ranges, int scale, std::vector<cv::Point2d> *contours_result) {
-    int width = lab_image.cols;
-    int height = lab_image.rows;
-    
-    // 芝の色を検知して2値化する
-    m_BinaryGrass.create(height, width, CV_8UC1);
-    lab_image.forEach<cv::Vec3b>([&](const cv::Vec3b &value, const int pos[2]) {
-        m_BinaryGrass.at<uint8_t>(pos[0], pos[1]) = isInsideLab(value[0], value[1], value[2], kDefaultGrassRegion) ? 255 : 0;
-    });
-
-    // 芝の領域のモーメントを求め、領域を矩形で近似する
-    std::array<cv::Point2d, 4> contours;
-    cv::Moments moments = cv::moments(m_BinaryGrass, true);
-    if (moments.m00 == 0) {
-        contours[0].x = 0.0;
-        contours[0].y = 0.0;
-        contours[1].x = 0.0;
-        contours[1].y = 0.0;
-        contours[2].x = 0.0;
-        contours[2].y = 0.0;
-        contours[3].x = 0.0;
-        contours[3].y = 0.0;
-    } else {
-        double center_x = moments.m10 / moments.m00;
-        double center_y = moments.m01 / moments.m00;
-        double mu20 = moments.m20 / moments.m00 - center_x * center_x;
-        double mu02 = moments.m02 / moments.m00 - center_y * center_y;
-        double mu11 = moments.m11 / moments.m00 - center_x * center_y;
-        double theta = 0.5 * atan2(2 * mu11, mu20 - mu02);
-        double cos_theta = cos(theta);
-        double sin_theta = sin(theta);
-        double half_length1 = sqrt(1.5 * (mu20 + mu02 + sqrt(4 * mu11 * mu11 + pow(mu20 - mu02, 2))));
-        double half_length2 = sqrt(1.5 * (mu20 + mu02 - sqrt(4 * mu11 * mu11 + pow(mu20 - mu02, 2))));
-        center_x *= scale;
-        center_y *= scale;
-        half_length1 *= scale * kGrassMargin;
-        half_length2 *= scale * kGrassMargin;
-        contours[0].x = center_x - half_length1 * cos_theta - half_length2 * sin_theta;
-        contours[0].y = center_y - half_length1 * sin_theta + half_length2 * cos_theta;
-        contours[1].x = center_x + half_length1 * cos_theta - half_length2 * sin_theta;
-        contours[1].y = center_y + half_length1 * sin_theta + half_length2 * cos_theta;
-        contours[2].x = center_x + half_length1 * cos_theta + half_length2 * sin_theta;
-        contours[2].y = center_y + half_length1 * sin_theta - half_length2 * cos_theta;
-        contours[3].x = center_x - half_length1 * cos_theta + half_length2 * sin_theta;
-        contours[3].y = center_y - half_length1 * sin_theta - half_length2 * cos_theta;
-    }
-
-    // 水平スキャンラインと芝の領域の交点を計算し、始点・終点をrangesに格納する
-    m_GrassRanges.resize(scale * height);
-    for (int y = 0; y < (scale * height); y++) {
-        int start_x = scale * width, end_x = 0;
-        for (int edge = 0; edge < 4; edge++) {
-            double x1 = contours[edge].x;
-            double y1 = contours[edge].y;
-            double x2 = contours[(edge + 1) % 4].x;
-            double y2 = contours[(edge + 1) % 4].y;
-            if (y2 < y1) {
-                std::swap(x1, x2);
-                std::swap(y1, y2);
-            }
-            int y1_int = static_cast<int>(ceil(y1));
-            int y2_int = static_cast<int>(floor(y2));
-            if (((y1_int <= y) && (y <= y2_int)) && (y1_int != y2_int)) {
-                double dx = (x2 - x1) / (y2 - y1);
-                double sx = x1 - dx * y1;
-                double x = sx + dx * y;
-                start_x = std::min(start_x, static_cast<int>(floor(x)));
-                end_x = std::max(end_x, static_cast<int>(ceil(x)) + 1);
-            }
-        }
-        m_GrassRanges[y] = cv::Range(start_x, end_x);
-    }
-
-    if (ranges != nullptr) {
-        ranges->resize(m_GrassRanges.size());
-        std::copy(m_GrassRanges.begin(), m_GrassRanges.end(), ranges->begin());
-    }
-
-    if (contours_result != nullptr) {
-        contours_result->resize(contours.size());
-        std::copy(contours.begin(), contours.end(), contours_result->begin());
-    }
-
-    return m_BinaryGrass;
-}
-
-const cv::Mat& FieldDetector::detectLines(const cv::Mat &lab_image, std::vector<cv::Vec4f> &line_segments, std::vector<cv::Vec4f> *edge_line_segments) {
-    int height = lab_image.rows;
-    int width = lab_image.cols;
+const cv::Mat& FieldDetector::detect(const cv::Mat &bgr_image, std::vector<cv::Vec4f> &line_segments, std::vector<cv::Vec4f> *edge_line_segments) {
+    int width = bgr_image.cols;
+    int height = bgr_image.rows;
     double diagonal = sqrt(width * width + height * height);
+    
+    // 出力値を初期化する
+    line_segments.clear();
+    m_LongerLineSegments.clear();
 
-    // 白線の色を検知して2値化する
-    m_BinaryLines.create(height, width, CV_8UC1);
-    lab_image.forEach<cv::Vec3b>([&](const cv::Vec3b &value, const int pos[2]) {
-        const cv::Range &range = m_GrassRanges[pos[0]];
-        bool inside_grass = (range.start <= pos[1]) && (pos[1] < range.end);
-        //m_BinaryLines.at<uint8_t>(pos[0], pos[1]) = (inside_grass && isInsideLab(value[0], value[1], value[2], kDefaultWhiteRegion)) ? 255 : 0;
-        m_BinaryLines.at<uint8_t>(pos[0], pos[1]) = inside_grass ? value[0] : 0;
-    });
+    do {
+        // 芝を検知する
+        cv::cvtColor(bgr_image, m_LabImage, cv::COLOR_BGR2Lab);
+        detectGrassRegion(m_LabImage, m_GrassBinaryImage, m_GrassRectangle, 1);
+        if (m_GrassRectangle.empty() == true) {
+            break;
+        }
 
-    // 線分を抽出し、長い線分を選ぶ
-    m_Lsd->detect(m_BinaryLines, m_LineSegments);
-    selectLongSegments(m_LineSegments, m_LongerLineSegments, diagonal * kLineLengthThreshold);
-    //if (kMaximumLineCount < static_cast<int>(m_LongLineSegments.size())) {
-    //    selectNthLongerSegments(m_LongLineSegments, kMaximumLineCount);
-    //    m_LongLineSegments.resize(kMaximumLineCount);
-    //}
+        // 線分を抽出し、長い線分を選ぶ
+        cv::cvtColor(bgr_image, m_GrayscaleImage, cv::COLOR_BGR2GRAY);
+        cv::dilate(m_GrayscaleImage, m_DilatedImage, cv::Mat());
+        m_Lsd->detect(cv::Mat(m_DilatedImage, m_GrassRectangle), m_LineSegments);
+        int offset_x = m_GrassRectangle.x;
+        int offset_y = m_GrassRectangle.y;
+        for (cv::Vec4f &segment : m_LineSegments) {
+            segment[0] += offset_x;
+            segment[1] += offset_y;
+            segment[2] += offset_x;
+            segment[3] += offset_y;
+        }
+        selectLongSegments(m_LineSegments, m_LongerLineSegments, diagonal * kLineLengthThreshold);
+        connectMultipleSegments(m_LongerLineSegments, m_LongerLineSegments, diagonal * kGapThreshold, diagonal * kSameSegmentThreshold, kParallelAngle);
 
-    // 平行な線分を合成し、白線を抽出する
-    edgePolarityCheck(m_LongerLineSegments, m_BinaryLines, m_EdgePolarity);
-    combineParallelSegments(m_LongerLineSegments, m_EdgePolarity, m_BinaryLines, m_WhiteLines, diagonal * kNeighborSegmentThreshold);
-    connectMultipleSegments(m_WhiteLines, line_segments, diagonal * kGapThreshold, diagonal * kSameSegmentThreshold, kParallelAngle);
+        // 平行な線分を合成し、白線を抽出する
+        edgePolarityCheck(m_LongerLineSegments, m_GrayscaleImage, m_EdgePolarity);
+        combineParallelSegments(m_LongerLineSegments, m_EdgePolarity, m_GrayscaleImage, m_WhiteLines, diagonal * kNeighborSegmentThreshold);
+        connectMultipleSegments(m_WhiteLines, line_segments, diagonal * kGapThreshold, diagonal * kSameSegmentThreshold, kParallelAngle);
+    } while (false);
 
 	// 検知した線分を出力する
 	if (edge_line_segments != nullptr) {
@@ -230,7 +63,124 @@ const cv::Mat& FieldDetector::detectLines(const cv::Mat &lab_image, std::vector<
 		std::copy(m_LongerLineSegments.begin(), m_LongerLineSegments.end(), edge_line_segments->begin());
 	}
 
-    return m_BinaryLines;
+    return m_GrayscaleImage;
+}
+
+void FieldDetector::detectGrassRegion(const cv::Mat &lab_image, cv::Mat &binary, cv::Rect &rectangle, int scale) {
+    static constexpr double kThreshold1 = 0.05;
+    static constexpr double kThreshold2 = 0.50;
+    static constexpr double kThreshold3 = 0.95;
+    
+    int width = lab_image.cols;
+    int height = lab_image.rows;
+
+    // 芝の色を検知して2値化する
+    binary.create(height, width, CV_8U);
+    lab_image.forEach<cv::Vec3b>([&](const cv::Vec3b &value, const int pos[2]) {
+        binary.at<uint8_t>(pos[0], pos[1]) = isInsideLab(value[0], value[1], value[2], kDefaultGrassRegion) ? 255 : 0;
+    });
+
+    // 垂直方向の画素分布から芝の範囲を推定する
+    double y_start = 0.0, y_end = 0.0;
+    do {
+        // 垂直方向に画素を累積する
+        std::vector<double> cumulation(height);
+        double acc = 0.0;
+        for (int y = 0; y < height; y++) {
+            const uint8_t *ptr = binary.ptr(y);
+            int sum = 0;
+            for (int x = 0; x < width; x++) {
+                sum += *ptr++;
+            }
+            acc += sum;
+            cumulation[y] = acc;
+        }
+        double total_pixels = cumulation[height - 1];
+        if (total_pixels == 0.0) {
+            break;
+        }
+
+        // 累積値が10%->50%->90%となるところのY座標で分布範囲を推定する
+        int y1, y2, y3;
+        for (y1 = 0; y1 < height; y1++) {
+            if ((total_pixels * kThreshold1) <= cumulation[y1]) {
+                break;
+            }
+        }
+        for (y2 = y1; y2 < height; y2++) {
+            if ((total_pixels * kThreshold2) <= cumulation[y2]) {
+                break;
+            }
+        }
+        for (y3 = y2; y3 < height; y3++) {
+            if ((total_pixels * kThreshold3) <= cumulation[y3]) {
+                break;
+            }
+        }
+        double c1 = cumulation[y1] / total_pixels;
+        double c2 = cumulation[y2] / total_pixels;
+        double c3 = cumulation[y3] / total_pixels;
+        if ((c1 == c2) || (c2 == c3)) {
+            break;
+        }
+        y_start = (c2 * y1 - c1 * y2) / (c2 - c1);
+        y_end = (c3 - 1.0) * y2 - (c2 - 1.0) * y3 / (c3 - c2);
+    } while (false);
+
+    // 水平方向の画素分布から芝の範囲を推定する
+    double x_start = 0.0, x_end = 0.0;
+    do {
+        std::vector<double> cumulation(width, 0.0);
+        for (int y = 0; y < height; y++) {
+            const uint8_t *ptr = binary.ptr(y);
+            for (int x = 0; x < width; x++) {
+                cumulation[x] += *ptr++;
+            }
+        }
+        for (int x = 1; x < width; x++) {
+            cumulation[x] += cumulation[x - 1];
+        }
+        double total_pixels = cumulation[width - 1];
+        if (total_pixels == 0.0) {
+            break;
+        }
+
+        // 累積値が10%->50%->90%となるところのX座標で分布範囲を推定する
+        int x1, x2, x3;
+        for (x1 = 0; x1 < width; x1++) {
+            if ((total_pixels * kThreshold1) <= cumulation[x1]) {
+                break;
+            }
+        }
+        for (x2 = x1; x2 < width; x2++) {
+            if ((total_pixels * kThreshold2) <= cumulation[x2]) {
+                break;
+            }
+        }
+        for (x3 = x2; x3 < width; x3++) {
+            if ((total_pixels * kThreshold3) <= cumulation[x3]) {
+                break;
+            }
+        }
+        double c1 = cumulation[x1] / total_pixels;
+        double c2 = cumulation[x2] / total_pixels;
+        double c3 = cumulation[x3] / total_pixels;
+        if ((c1 == c2) || (c2 == c3)) {
+            break;
+        }
+        x_start = (c2 * x1 - c1 * x2) / (c2 - c1);
+        x_end = (c3 - 1.0) * x2 - (c2 - 1.0) * x3 / (c3 - c2);
+    } while (false);
+
+    int x_start_int = std::max(0, std::min(static_cast<int>(round(x_start)), width - 1));
+    int x_end_int = std::max(0, std::min(static_cast<int>(round(x_end)), width));
+    int y_start_int = std::max(0, std::min(static_cast<int>(round(y_start)), height - 1));
+    int y_end_int = std::max(0, std::min(static_cast<int>(round(y_end)), height));
+    
+    rectangle.x = x_start_int;
+    rectangle.y = y_start_int;
+    rectangle.width = x_end_int - x_start_int;
+    rectangle.height = y_end_int - y_start_int;
 }
 
 bool FieldDetector::isInsideLab(int L, int a, int b, const LabRegion &region) {
@@ -286,12 +236,16 @@ bool FieldDetector::isInsideLab(int L, int a, int b, const LabRegion &region) {
 
 void FieldDetector::selectLongSegments(const std::vector<cv::Vec4f> &input_segments, std::vector<cv::Vec4f> &output_segments, double min_length) {
     double min_length2 = min_length * min_length;
-    output_segments.clear();
-    for (const auto &segment : input_segments) {
+    int num_of_outputs = 0;
+    output_segments.resize(input_segments.size());
+    for (int index = 0; index < static_cast<int>(input_segments.size()); index++) {
+        const cv::Vec4f &segment = input_segments[index];
         if (min_length2 <= segmentLength2(segment)) {
-            output_segments.push_back(segment);
+            output_segments[num_of_outputs] = segment;
+            num_of_outputs++;
         }
     }
+    output_segments.resize(num_of_outputs);
 }
 
 void FieldDetector::selectNthLongerSegments(std::vector<cv::Vec4f> &line_segments, int max_count) {

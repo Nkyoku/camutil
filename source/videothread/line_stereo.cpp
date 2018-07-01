@@ -89,8 +89,8 @@ void VideoLineStereoThread::processImage(const cv::Mat &input_image) {
 
     // 芝を検知する
     std::vector<cv::Range> field_ranges[2];
-    m_FieldDetector.detectGrass(m_OriginalLabImage[0], &field_ranges[0], 1);
-    m_FieldDetector.detectGrass(m_OriginalLabImage[1], &field_ranges[1], 1);
+    //m_FieldDetector.detectGrass(m_OriginalLabImage[0], &field_ranges[0], nullptr, 1);
+    //m_FieldDetector.detectGrass(m_OriginalLabImage[1], &field_ranges[1], nullptr, 1);
 
     // 芝の検知を行う
     // 強調フィルタの処理過程で出た中間値画像を利用して白線を除く

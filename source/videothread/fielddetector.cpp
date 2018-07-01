@@ -76,49 +76,49 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     m_DisparityMap.convertTo(disparity_map, CV_8U, 8.0);
     cv::cvtColor(disparity_map, disparity_map_color, cv::COLOR_GRAY2RGB);
 
-    // 画像に強調フィルタを掛けL*a*b*に変換する
-    m_EnhancementFilter.compute(m_ColorImage[0], m_EnhancedColorImage);
-    cv::cvtColor(m_ColorImage[0], m_LabEnhancedImage, cv::COLOR_BGR2Lab);
-    cv::cvtColor(m_EnhancementFilter.medianedImage(), m_LabMedianedImage, cv::COLOR_BGR2Lab);
-
-    // 芝の検知を行う
-    // 強調フィルタの処理過程で出た中間値画像を利用して白線を除く
-    cv::Mat green_display(height, width, CV_8UC3);
-    std::vector<cv::Range> ranges;
-    const cv::Mat &green = m_FieldDetector.detectGrass(m_LabMedianedImage, &ranges, kScaleFactor);
-    for (int y = 0; y < height; y++) {
-        int start_x = ranges[y].start;
-        int end_x = ranges[y].end;
-        if (start_x != end_x) {
-            for (int x = 0; x < width; x++) {
-                bool grass = green.at<uint8_t>(y / kScaleFactor, x / kScaleFactor);
-                bool inside = (start_x <= x) && (x < end_x);
-                if (grass == true) {
-                    if (inside == true) {
-                        green_display.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 255, 0);
-                    } else {
-                        green_display.at<cv::Vec3b>(y, x) = cv::Vec3b(128, 128, 128);
-                    }
-                } else {
-                    if (inside == true) {
-                        green_display.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 128, 0);
-                    } else {
-                        green_display.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
-                    }
-                }
-            }
-        } else {
-            memset(green_display.ptr(y), 0, 3 * width);
-        }
-    }
-
     // 白線の検知を行う
     std::vector<cv::Vec4f> line_segments;
     std::vector<cv::Vec4f> edge_line_segments;
-    const cv::Mat &white = m_FieldDetector.detectLines(m_LabEnhancedImage, line_segments, &edge_line_segments);
+    const cv::Mat &white = m_FieldDetector.detect(m_ColorImage[0], line_segments, &edge_line_segments);
+
+    static const cv::Scalar color_list[] = {
+        cv::Scalar(255, 0, 0)/*,
+        cv::Scalar(255, 128, 0),
+        cv::Scalar(0, 255, 0),
+        cv::Scalar(0, 255, 255),
+        cv::Scalar(0, 0, 255),
+        cv::Scalar(255, 0, 255),*/
+    };
+    int color_number = 0;
+    cv::cvtColor(m_ColorImage[0], m_WhiteLineImage, cv::COLOR_BGR2RGB);
+    for (const cv::Vec4f &segment : edge_line_segments) {
+        cv::Point2f a(segment[0], segment[1]);
+        cv::Point2f b(segment[2], segment[3]);
+        cv::line(m_WhiteLineImage, a, b, color_list[color_number], 2);
+        color_number = (color_number + 1) % (sizeof(color_list) / sizeof(cv::Scalar));
+    }
+    for (const cv::Vec4f &segment : line_segments) {
+        cv::Point2f a(segment[0], segment[1]);
+        cv::Point2f b(segment[2], segment[3]);
+        cv::line(m_WhiteLineImage, a, b, cv::Scalar(0, 128, 255), 3);
+    }
+    
+    // 検知した芝を表示する
+    cv::Mat green_display(height, width, CV_8UC3);
+    const cv::Mat &green = m_FieldDetector.grassBinaryImage();
+    cv::Rect rect = m_FieldDetector.grassRectangle();
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            bool grass = green.at<uint8_t>(y, x);
+            green_display.at<cv::Vec3b>(y, x) = (grass == true) ? cv::Vec3b(0, 255, 0) : cv::Vec3b(0, 0, 0);
+        }
+    }
+    cv::rectangle(green_display, rect, cv::Scalar(255, 0, 0), 2);
+
+    
 
 	cv::Point3d field_centroid, field_normal;
-	double estimation_error = m_PositionTracker.estimateFieldPlane(edge_line_segments, m_Stereo, m_Undistort, &field_centroid, &field_normal);
+	double estimation_error = m_PositionTracker.estimateFieldPlane(line_segments, m_Stereo, m_Undistort, &field_centroid, &field_normal);
 	double roll_angle = m_PositionTracker.calculateRollAngle();
 	double pitch_angle = m_PositionTracker.calculatePitchAngle();
     double viewpoint_height = m_PositionTracker.calculateHeight();
@@ -129,15 +129,6 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
     m_UnrollImage.setTo(0);
     m_UnpitchImage.create(height, width, CV_8UC3);
     m_UnpitchImage.setTo(0);
-    for (int y = 0; y < height; y++) {
-        int start_x = ranges[y].start;
-        int end_x = ranges[y].end;
-        for (int x = 0; x < width; x++) {
-            if ((x < start_x) || (end_x <= x)) {
-                m_WhiteLineImage.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
-            }
-        }
-    }
 
     // 推定のサンプルに使われた点を描画する
     for (const cv::Point3f &sample : m_PositionTracker.m_UsedPoints) {
@@ -253,12 +244,15 @@ void VideoFieldDetectorThread::processImage(const cv::Mat &input_image) {
         }
     }
 
-    //m_Output[0]->setImage(m_ColorImage[0]);
-    //m_Output[1]->setImage(m_ColorImage[1]);
     m_Output[0]->setImage(m_WhiteLineImage);
     m_Output[1]->setImage(disparity_map_color);
     m_Output[2]->setImage(m_UnrollImage);
     m_Output[3]->setImage(m_UnpitchImage);
+
+    //m_Output[0]->setImage(m_ColorImage[0]);
+    //m_Output[1]->setImage(m_WhiteLineImage);
+    //m_Output[2]->setImage(green_display);
+    //m_Output[3]->setImage(white);
 }
 
 void VideoFieldDetectorThread::showColor(int x, int y) {

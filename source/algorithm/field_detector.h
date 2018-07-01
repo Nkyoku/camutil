@@ -9,21 +9,25 @@ public:
     // コンストラクタ
     FieldDetector(void);
 
-    // 芝の検知を行う
-    // rangesに各Y座標における芝のX座標での範囲のリストを返す
-    // 検知した芝の2値化画像を返値として返す
-    const cv::Mat& detectGrass(const cv::Mat &lab_image, std::vector<cv::Range> *ranges = nullptr, int scale = 1);
-
-    // 画像のモーメントを利用して芝の検知を行う
-    // rangesに各Y座標における芝のX座標での範囲のリストを返す
-    // 検知した芝の2値化画像を返値として返す
-    const cv::Mat& detectGrassMoment(const cv::Mat &lab_image, std::vector<cv::Range> *ranges = nullptr, int scale = 1, std::vector<cv::Point2d> *contours = nullptr);
-
-    // 白線の検知を行う
-    // rectangleにはdetectGrass()で検知した芝の領域を示す矩形を渡す
+    // 芝と白線の検知を行う
     // line_segmentsに検知した白線の線分リストを返す
     // 検知した白線の2値化画像を返値として返す
-    const cv::Mat& detectLines(const cv::Mat &lab_image, std::vector<cv::Vec4f> &line_segments, std::vector<cv::Vec4f> *edge_line_segments = nullptr);
+    const cv::Mat& detect(const cv::Mat &bgr_image, std::vector<cv::Vec4f> &line_segments, std::vector<cv::Vec4f> *edge_line_segments = nullptr);
+
+    // 芝の2値化画像を取得する
+    const cv::Mat& grassBinaryImage(void) const {
+        return m_GrassBinaryImage;
+    }
+
+    // 芝の範囲を取得する
+    const cv::Rect& grassRectangle(void) const {
+        return m_GrassRectangle;
+    }
+
+
+
+
+
 
 private:
     // L*a*b*色空間での扇状の立体を表す構造体
@@ -54,10 +58,10 @@ private:
     static constexpr double kGrassVarianceCoefficient = 3.5;
 
     // 検出する白線の最低長(入力画像サイズに対する割合)
-    static constexpr double kLineLengthThreshold = 1.0 / 32.0;
+    static constexpr double kLineLengthThreshold = 1.0 / 64;
 
     // 検出する白線の本数の最大数
-    static constexpr int kMaximumLineCount = 32;
+    //static constexpr int kMaximumLineCount = 32;
 
     // 2本の直線が平行だと見なすcosθ
     static constexpr double kParallelAngle = 255.0 / 256.0;
@@ -69,19 +73,22 @@ private:
     static constexpr double kSameSegmentThreshold = 1.0 / 512.0;
 
     // 2本の線分が同一だと見なす断絶の距離(入力画像サイズに対する割合)
-    static constexpr double kGapThreshold = 1.0 / 8.0;
+    static constexpr double kGapThreshold = 1.0 / 32.0;
 
     // 線分検知器
     cv::Ptr<cv::LineSegmentDetector> m_Lsd;
 
+    // 白線検知用のグレイスケール画像
+    cv::Mat m_GrayscaleImage, m_DilatedImage;
+
+    // 芝検知用のL*a*b*画像
+    cv::Mat m_LabImage;
+
     // 芝の2値化画像
-    cv::Mat m_BinaryGrass;
+    cv::Mat m_GrassBinaryImage;
 
-    // 芝の領域の範囲リスト
-    std::vector<cv::Range> m_GrassRanges;
-
-    // 白線の2値化画像
-    cv::Mat m_BinaryLines;
+    // 芝の領域の範囲を表す矩形
+    cv::Rect m_GrassRectangle;
 
     // 白線のエッジ線分リスト
     std::vector<cv::Vec4f> m_LineSegments, m_LongerLineSegments;
@@ -91,6 +98,9 @@ private:
 
     // 合成された白線の線分リスト
     std::vector<cv::Vec4f> m_WhiteLines;
+
+    // 芝の検知を行う
+    static void detectGrassRegion(const cv::Mat &lab_image, cv::Mat &binary, cv::Rect &rectangle, int scale);
 
     // L*a*b*の値がLabRegionの内側か判定する
     static bool isInsideLab(int L, int a, int b, const LabRegion &region);

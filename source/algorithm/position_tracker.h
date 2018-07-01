@@ -3,6 +3,7 @@
 #include <opencv2/core.hpp>
 #include "gradient_based_stereo_matching.h"
 #include "undistort.h"
+#include <random>
 
 // 姿勢位置推定を行う
 class PositionTracker {
@@ -65,6 +66,9 @@ private:
 
 	// 面に含まれると判定する点と面の距離 [m]
 	static constexpr double kRansacThreshold = 1.0 / 4.0;
+
+    // 乱数発生器
+    std::mt19937 m_RandomEngine;
 
 	// 垂直に近い線分リスト
 	std::vector<cv::Vec4f> m_VerticalLineSegments;

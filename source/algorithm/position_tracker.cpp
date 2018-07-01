@@ -60,8 +60,7 @@ void PositionTracker::unsetKnownRollAndPitchAngle(void) {
 double PositionTracker::estimateFieldPlane(const std::vector<cv::Vec4f> &line_segments, const GradientBasedStereoMatching &stereo, const Undistort &undistort, cv::Point3d *field_centroid, cv::Point3d *field_normal) {
 	int width = undistort.width();
 	int height = undistort.height();
-    std::mt19937 mt;
-
+    
     // 長い線分を分割する
     /*m_VerticalLineSegments.clear();
     for (const cv::Vec4f &segment : line_segments) {
@@ -121,7 +120,7 @@ double PositionTracker::estimateFieldPlane(const std::vector<cv::Vec4f> &line_se
             double axial_ratio = 0.0;
             for (int trial = 0; trial < num_of_trials; trial++) {
                 for (int i = 0; i < num_of_samples; i++) {
-                    const cv::Point3f &point = m_Points3d[start + (mt() % num_of_points)];
+                    const cv::Point3f &point = m_Points3d[start + (m_RandomEngine() % num_of_points)];
                     sample_points.at<float>(i, 0) = point.x;
                     sample_points.at<float>(i, 1) = point.y;
                     sample_points.at<float>(i, 2) = point.z;
@@ -158,7 +157,7 @@ double PositionTracker::estimateFieldPlane(const std::vector<cv::Vec4f> &line_se
                     selected_disparities.push_back(m_DisparitiesOfPoints[start + i]);
                 }
             }
-            m_LineSegmentLikelihood[segment_index] = axial_ratio;
+            //m_LineSegmentLikelihood[segment_index] = axial_ratio;
             start += num_of_points;
         }
     }
@@ -182,7 +181,7 @@ double PositionTracker::estimateFieldPlane(const std::vector<cv::Vec4f> &line_se
 	for (int trial = 0; trial < kRansacTrials; trial++) {
         // kNumberOfRansacSamples個のサンプルを選ぶ
 		for (int i = 0; i < kNumberOfRansacSamples; i++) {
-			int sample_index = mt() % static_cast<int>(selected_points3d.size());
+			int sample_index = m_RandomEngine() % static_cast<int>(selected_points3d.size());
 			const cv::Point3f &point = selected_points3d[sample_index];
 			sample_points.at<float>(i, 0) = point.x;
             sample_points.at<float>(i, 1) = point.y;
